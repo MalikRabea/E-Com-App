@@ -19,106 +19,83 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 
-namespace E_Com.infrastructure
+public static class infrastructureRegisteration
 {
-    public static class infrastructureRegisteration
+    public static IServiceCollection infrastructureConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
-        public static IServiceCollection infrastructureConfiguration(this IServiceCollection services , IConfiguration configuration  )
+        services.AddScoped(typeof(IGenericRepositry<>), typeof(GenericRepositry<>));
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IRating, RatingRepositry>();
+        services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IGenerateToken, GenerateToken>();
+        services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IProductRepositry, ProductRepositry>();
+        services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<IFavoriteRepository, FavoriteRepository>();
+
+        // Redis
+        var redisConfig = Environment.GetEnvironmentVariable("ConnectionStrings__redis");
+        services.AddSingleton<IConnectionMultiplexer>(i =>
         {
-            services.AddScoped(typeof(IGenericRepositry<>), typeof(GenericRepositry<>));
+            var config = StackExchange.Redis.ConfigurationOptions.Parse(redisConfig);
+            return ConnectionMultiplexer.Connect(config);
+        });
 
-          
+        services.AddSingleton<IImageManagementService, ImageManagementService>();
+        services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")));
 
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
-            // Register the email sender
-            services.AddScoped<IEmailService, EmailService>();
-            //Register rating for product
-            services.AddScoped<IRating, RatingRepositry>();
+        // MySQL
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__EcomDatabase");
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseMySql(connectionString, MySqlServerVersion.AutoDetect(connectionString))
+        );
 
+        services.AddIdentity<AppUser, IdentityRole>()
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddDefaultTokenProviders();
 
-            //register Iorder service
-            services.AddScoped<IOrderService, OrderService>();
+        // JWT Auth
+        var tokenSecret = Environment.GetEnvironmentVariable("Token__Secret");
+        var tokenIssuer = Environment.GetEnvironmentVariable("Token__Issuer");
 
-            // Register the token generator
-            services.AddScoped<IGenerateToken, GenerateToken>();
-
-            // Register payment service
-            services.AddScoped<IPaymentService, PaymentService>();
-
-            services.AddScoped<IProductRepositry, ProductRepositry>();
-            services.AddScoped<IProductService, ProductService>();
-
-            services.AddScoped<IFavoriteRepository, FavoriteRepository>();
-
-            //apply Redis Connection
-            services.AddSingleton<IConnectionMultiplexer>(i =>
+        services.AddAuthentication(op =>
+        {
+            op.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+            op.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddCookie(op =>
+        {
+            op.Cookie.Name = "token";
+            op.Events.OnRedirectToLogin = context =>
             {
-                var config = ConfigurationOptions.Parse(configuration.GetConnectionString("redis"));
-                return ConnectionMultiplexer.Connect(config);
-            });
-
-
-
-            services.AddSingleton<IImageManagementService, ImageManagementService>();
-            services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"))
-                );
-
-            var connectionString = configuration.GetConnectionString("EcomDatabase");
-
-            // DbContext مع MySQL
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseMySql(connectionString, MySqlServerVersion.AutoDetect(connectionString))
-            );
-    
-            // هنا تحقن أي services أخرى في Infrastructure
-            // services.AddScoped<IYourService, YourService>();
-
-        
-
-        services.AddIdentity<AppUser, IdentityRole>().AddEntityFrameworkStores<AppDbContext>()
-                .AddDefaultTokenProviders();
-
-
-            services.AddAuthentication(op =>
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            };
+        })
+        .AddJwtBearer(op =>
+        {
+            op.RequireHttpsMetadata = false;
+            op.SaveToken = true;
+            op.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
             {
-                op.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                op.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-
-            }).AddCookie(op => {
-
-                op.Cookie.Name = "token";
-                op.Events.OnRedirectToLogin = context =>
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(tokenSecret)),
+                ValidateIssuer = true,
+                ValidIssuer = tokenIssuer,
+                ValidateAudience = false,
+                ClockSkew = TimeSpan.Zero
+            };
+            op.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+            {
+                OnMessageReceived = context =>
                 {
-                    context.Response.StatusCode = StatusCodes.Status401Unauthorized; // Unauthorized
+                    context.Token = context.Request.Cookies["token"];
                     return Task.CompletedTask;
-                };
+                }
+            };
+        });
 
-            }).AddJwtBearer(op =>
-            {
-                op.RequireHttpsMetadata = false;
-                op.SaveToken = true;
-                op.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey =new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Token:Secret"])),
-                    ValidateIssuer = true,
-                    ValidIssuer = configuration["Token:Issuer"],
-                    ValidateAudience = false,
-                    ClockSkew = TimeSpan.Zero // Optional: Set clock skew to zero for immediate expiration
-                };
-                op.Events = new JwtBearerEvents()
-                {
-                    OnMessageReceived = context =>
-                    {
-                        context.Token = context.Request.Cookies["token"];
-                        return Task.CompletedTask;
-                    }
-                };
-            });
-
-
-
-            return services;
-        }
+        return services;
     }
 }
