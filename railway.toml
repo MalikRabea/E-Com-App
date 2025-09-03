@@ -1,5 +1,6 @@
 [build]
 builder = "NIXPACKS"
+buildCommand = "dotnet restore && dotnet build -c Release"
 
 [deploy]
 startCommand = "dotnet run --project E-Com.API/E-Com.API.csproj --no-build --urls http://0.0.0.0:3000"
