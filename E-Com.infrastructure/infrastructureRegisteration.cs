@@ -52,12 +52,12 @@ public static class infrastructureRegisteration
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__EcomDatabase");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            Console.WriteLine("⚠️ MySQL connection string is missing. Check your environment variables.");
+            Console.WriteLine("⚠️ PostgreSQL  connection string is missing. Check your environment variables.");
         }
         else
         {
             services.AddDbContext<AppDbContext>(options =>
-                options.UseMySql(connectionString, MySqlServerVersion.AutoDetect(connectionString))
+                options.UseNpgsql(connectionString)
             );
         }
 
