@@ -2,4 +2,8 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "dotnet E_Com.API.dll"
+startCommand = "dotnet run --project E-Com.API/E-Com.API.csproj --no-build --urls http://0.0.0.0:3000"
+
+
+[variables]
+DOTNET_VERSION = "8.0.100"
