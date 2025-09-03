@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using E_Com.Core.Entites;
+﻿using E_Com.Core.Entites;
 using E_Com.Core.interfaces;
 using E_Com.Core.Services;
 using E_Com.infrastructure.Data;
@@ -18,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using System.Text;
 
 public static class infrastructureRegisteration
 {
@@ -36,20 +32,34 @@ public static class infrastructureRegisteration
 
         // Redis
         var redisConfig = Environment.GetEnvironmentVariable("ConnectionStrings__redis");
-        services.AddSingleton<IConnectionMultiplexer>(i =>
+        if (string.IsNullOrWhiteSpace(redisConfig))
         {
-            var config = StackExchange.Redis.ConfigurationOptions.Parse(redisConfig);
-            return ConnectionMultiplexer.Connect(config);
-        });
+            Console.WriteLine("⚠️ Redis connection string is missing. Check your environment variables.");
+        }
+        else
+        {
+            services.AddSingleton<IConnectionMultiplexer>(i =>
+            {
+                var config = ConfigurationOptions.Parse(redisConfig);
+                return ConnectionMultiplexer.Connect(config);
+            });
+        }
 
         services.AddSingleton<IImageManagementService, ImageManagementService>();
         services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")));
 
         // MySQL
         var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__EcomDatabase");
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseMySql(connectionString, MySqlServerVersion.AutoDetect(connectionString))
-        );
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            Console.WriteLine("⚠️ MySQL connection string is missing. Check your environment variables.");
+        }
+        else
+        {
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseMySql(connectionString, MySqlServerVersion.AutoDetect(connectionString))
+            );
+        }
 
         services.AddIdentity<AppUser, IdentityRole>()
             .AddEntityFrameworkStores<AppDbContext>()
@@ -59,42 +69,49 @@ public static class infrastructureRegisteration
         var tokenSecret = Environment.GetEnvironmentVariable("Token__Secret");
         var tokenIssuer = Environment.GetEnvironmentVariable("Token__Issuer");
 
-        services.AddAuthentication(op =>
+        if (string.IsNullOrWhiteSpace(tokenSecret) || string.IsNullOrWhiteSpace(tokenIssuer))
         {
-            op.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-            op.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddCookie(op =>
+            Console.WriteLine("⚠️ JWT configuration is missing. Check your environment variables.");
+        }
+        else
         {
-            op.Cookie.Name = "token";
-            op.Events.OnRedirectToLogin = context =>
+            services.AddAuthentication(op =>
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return Task.CompletedTask;
-            };
-        })
-        .AddJwtBearer(op =>
-        {
-            op.RequireHttpsMetadata = false;
-            op.SaveToken = true;
-            op.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                op.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                op.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddCookie(op =>
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(tokenSecret)),
-                ValidateIssuer = true,
-                ValidIssuer = tokenIssuer,
-                ValidateAudience = false,
-                ClockSkew = TimeSpan.Zero
-            };
-            op.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
-            {
-                OnMessageReceived = context =>
+                op.Cookie.Name = "token";
+                op.Events.OnRedirectToLogin = context =>
                 {
-                    context.Token = context.Request.Cookies["token"];
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     return Task.CompletedTask;
-                }
-            };
-        });
+                };
+            })
+            .AddJwtBearer(op =>
+            {
+                op.RequireHttpsMetadata = false;
+                op.SaveToken = true;
+                op.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenSecret)),
+                    ValidateIssuer = true,
+                    ValidIssuer = tokenIssuer,
+                    ValidateAudience = false,
+                    ClockSkew = TimeSpan.Zero
+                };
+                op.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        context.Token = context.Request.Cookies["token"];
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+        }
 
         return services;
     }

@@ -14,12 +14,12 @@ namespace E_Com.API
             // CORS
             builder.Services.AddCors(options =>
             {
-                options.AddPolicy("CORSPolicy", builder =>
+                options.AddPolicy("CORSPolicy", policy =>
                 {
-                    builder.AllowAnyHeader()
-                           .AllowAnyMethod()
-                           .AllowCredentials()
-                           .WithOrigins("http://localhost:4200");
+                    policy.AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials()
+                          .WithOrigins("http://localhost:4200");
                 });
             });
 
@@ -32,11 +32,21 @@ namespace E_Com.API
 
             var app = builder.Build();
 
-            // Auto-Migrate
+            // Auto-Migrate with error handling
             using (var scope = app.Services.CreateScope())
             {
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                db.Database.Migrate();
+                try
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    db.Database.Migrate();
+                    Console.WriteLine("? Database migration completed successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("? Database migration failed.");
+                    Console.WriteLine("Type: " + ex.GetType().FullName);
+                    Console.WriteLine("Message: " + ex.Message);
+                }
             }
 
             if (app.Environment.IsDevelopment())
@@ -46,12 +56,16 @@ namespace E_Com.API
             }
 
             app.UseCors("CORSPolicy");
+
+            app.UseHttpsRedirection();   // moved up
+            app.UseStaticFiles();
+
             app.UseMiddleware<ExceptionsMiddleware>();
             app.UseAuthentication();
             app.UseAuthorization();
-            app.UseStaticFiles();
+
             app.UseStatusCodePagesWithReExecute("/errors/{0}");
-            app.UseHttpsRedirection();
+
             app.MapControllers();
             app.Run();
         }
