@@ -48,11 +48,11 @@ public static class infrastructureRegisteration
         services.AddSingleton<IImageManagementService, ImageManagementService>();
         services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")));
 
-        // MySQL
-        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__EcomDatabase");
+        var connectionString = configuration.GetConnectionString("EcomDatabase")
+                      ?? Environment.GetEnvironmentVariable("ConnectionStrings__EcomDatabase");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            Console.WriteLine("⚠️ PostgreSQL  connection string is missing. Check your environment variables.");
+            Console.WriteLine("⚠️ PostgreSQL connection string is missing. Check your environment variables.");
         }
         else
         {
@@ -60,6 +60,29 @@ public static class infrastructureRegisteration
                 options.UseNpgsql(connectionString)
             );
         }
+
+        // Stripe
+        var stripePublishKey = Environment.GetEnvironmentVariable("StripSetting__publishKey");
+            var stripeSecretKey = Environment.GetEnvironmentVariable("StripSetting__secretKey");
+
+        if (string.IsNullOrWhiteSpace(stripePublishKey) || string.IsNullOrWhiteSpace(stripeSecretKey))
+            {
+                Console.WriteLine("⚠️ Stripe configuration is missing. Check your environment variables.");
+            }
+            else
+            {
+                // خزن المفاتيح كـ Singleton عشان تقدر تستخدمهم بأي Service
+                services.AddSingleton(new Dictionary<string, string>
+                     {
+            { "StripePublishKey", stripePublishKey },
+            { "StripeSecretKey", stripeSecretKey }
+                      });
+
+                // إعداد Stripe SDK
+                Stripe.StripeConfiguration.ApiKey = stripeSecretKey;
+              }
+
+        // Identity
 
         services.AddIdentity<AppUser, IdentityRole>()
             .AddEntityFrameworkStores<AppDbContext>()
