@@ -19,7 +19,7 @@ namespace E_Com.API
                     policy.AllowAnyHeader()
                           .AllowAnyMethod()
                           .AllowCredentials()
-                          .WithOrigins("https://your-angular-app.onrender.com");
+                          .WithOrigins("https://e-com-app-ngx.onrender.com");
                 });
             });
 
