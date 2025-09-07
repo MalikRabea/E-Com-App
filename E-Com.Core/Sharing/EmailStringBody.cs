@@ -38,7 +38,7 @@ namespace E_Com.Core.Sharing
                                 <h1>{message}</h1>
                                         <hr>
                                      <br>
-                                    <a class=""button"" href=""http://localhost:4200/Account/{component}?email={email}&code={encodeToken}"">
+                                    <a class=""button"" href=""https://e-com-app-xfqq.onrender.com/Account/{component}?email={email}&code={encodeToken}"">
                                             {message}
                                         </a>
                             </body>
