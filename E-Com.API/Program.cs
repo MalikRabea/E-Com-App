@@ -68,6 +68,15 @@ namespace E_Com.API
                     Console.WriteLine("Message: " + ex.Message);
                 }
             }
+            Console.WriteLine("====== ENV CHECK ======");
+            Console.WriteLine("Postgres: " + Environment.GetEnvironmentVariable("ConnectionStrings__EcomDatabase"));
+            Console.WriteLine("Redis: " + Environment.GetEnvironmentVariable("ConnectionStrings__redis"));
+            Console.WriteLine("Stripe Publish: " + Environment.GetEnvironmentVariable("StripSetting__publishKey"));
+            Console.WriteLine("Stripe Secret: " + Environment.GetEnvironmentVariable("StripSetting__secretKey"));
+            Console.WriteLine("Token Issuer: " + Environment.GetEnvironmentVariable("Token__Issuer"));
+            Console.WriteLine("Token Secret: " + Environment.GetEnvironmentVariable("Token__Secret"));
+            Console.WriteLine("Email From: " + Environment.GetEnvironmentVariable("EmailSetting__From"));
+            Console.WriteLine("=======================");
 
             if (app.Environment.IsDevelopment())
             {
