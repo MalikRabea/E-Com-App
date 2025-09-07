@@ -1,6 +1,7 @@
 using E_Com.API.Middleware;
 using E_Com.infrastructure;
 using E_Com.infrastructure.Data;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
 namespace E_Com.API
@@ -31,6 +32,25 @@ namespace E_Com.API
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             var app = builder.Build();
+
+
+            // Global exception handler (??? ?? middleware)
+            app.UseExceptionHandler(errorApp =>
+            {
+                errorApp.Run(async context =>
+                {
+                    var error = context.Features.Get<IExceptionHandlerPathFeature>()?.Error;
+
+                    Console.WriteLine($"[ERROR] {error?.Message}\n{error?.StackTrace}");
+
+                    context.Response.StatusCode = 500;
+                    await context.Response.WriteAsJsonAsync(new
+                    {
+                        Message = error?.Message,
+                        Details = error?.StackTrace
+                    });
+                });
+            });
 
             // Auto-Migrate with error handling
             using (var scope = app.Services.CreateScope())
