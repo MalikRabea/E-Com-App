@@ -78,6 +78,14 @@ namespace E_Com.API
             Console.WriteLine("Email From: " + Environment.GetEnvironmentVariable("EmailSetting__From"));
             Console.WriteLine("=======================");
 
+            app.Use(async (context, next) =>
+            {
+                Console.WriteLine($"?? Incoming Request: {context.Request.Method} {context.Request.Path}");
+                await next.Invoke();
+                Console.WriteLine($"?? Response: {context.Response.StatusCode}");
+            });
+
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -86,7 +94,7 @@ namespace E_Com.API
 
             app.UseCors("CORSPolicy");
 
-            app.UseHttpsRedirection();   // moved up
+            //app.UseHttpsRedirection();   // moved up
             app.UseStaticFiles();
 
             app.UseMiddleware<ExceptionsMiddleware>();
