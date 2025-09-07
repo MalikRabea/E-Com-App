@@ -73,7 +73,7 @@ namespace E_Com.infrastructure.Repositries
                 string token = await userManager.GenerateEmailConfirmationTokenAsync(user);
 
                 Console.WriteLine("➡️ Sending activation email...");
-                await SendEmail(user.Email, token, "active", "ActiveEmail", "please active your email ,click on button to active");
+                //await SendEmail(user.Email, token, "active", "ActiveEmail", "please active your email ,click on button to active");
 
                 Console.WriteLine("✅ Email sent successfully");
                 return "done";
