@@ -32,6 +32,13 @@ namespace E_Com.API
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             var app = builder.Build();
+            app.Use(async (context, next) =>
+            {
+                Console.WriteLine($"?? Incoming {context.Request.Method} {context.Request.Path}");
+                await next();
+                Console.WriteLine($"?? Response {context.Response.StatusCode} for {context.Request.Path}");
+            });
+
 
 
             // Global exception handler (??? ?? middleware)
@@ -40,17 +47,20 @@ namespace E_Com.API
                 errorApp.Run(async context =>
                 {
                     var error = context.Features.Get<IExceptionHandlerPathFeature>()?.Error;
-
-                    Console.WriteLine($"[ERROR] {error?.Message}\n{error?.StackTrace}");
+                    Console.WriteLine($"[ERROR] {error?.Message}");
+                    Console.WriteLine($"[STACK] {error?.StackTrace}");
+                    Console.WriteLine($"[INNER] {error?.InnerException?.Message}");
 
                     context.Response.StatusCode = 500;
                     await context.Response.WriteAsJsonAsync(new
                     {
                         Message = error?.Message,
+                        Inner = error?.InnerException?.Message,
                         Details = error?.StackTrace
                     });
                 });
             });
+
 
             // Auto-Migrate with error handling
             using (var scope = app.Services.CreateScope())
