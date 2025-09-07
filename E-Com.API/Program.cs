@@ -78,6 +78,31 @@ namespace E_Com.API
             Console.WriteLine("Email From: " + Environment.GetEnvironmentVariable("EmailSetting__From"));
             Console.WriteLine("=======================");
 
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                try
+                {
+                    Console.WriteLine("?? Checking DB connection...");
+                    bool canConnect = db.Database.CanConnect();
+                    Console.WriteLine("? DB CanConnect: " + canConnect);
+
+                    var pendingMigrations = db.Database.GetPendingMigrations().ToList();
+                    Console.WriteLine("?? Pending migrations: " + string.Join(",", pendingMigrations));
+
+                    if (pendingMigrations.Any())
+                    {
+                        Console.WriteLine("?? There are pending migrations, applying now...");
+                        db.Database.Migrate();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("? DB Exception: " + ex.Message);
+                    Console.WriteLine(ex.StackTrace);
+                }
+            }
+
             app.Use(async (context, next) =>
             {
                 Console.WriteLine($"?? Incoming Request: {context.Request.Method} {context.Request.Path}");
