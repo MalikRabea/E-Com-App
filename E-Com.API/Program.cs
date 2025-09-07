@@ -32,16 +32,16 @@ namespace E_Com.API
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             var app = builder.Build();
+
+            // Global Logging Middleware (???? ???)
             app.Use(async (context, next) =>
             {
-                Console.WriteLine($"?? Incoming {context.Request.Method} {context.Request.Path}");
+                Console.WriteLine($" Incoming {context.Request.Method} {context.Request.Path}");
                 await next();
-                Console.WriteLine($"?? Response {context.Response.StatusCode} for {context.Request.Path}");
+                Console.WriteLine($" Response {context.Response.StatusCode} for {context.Request.Path}");
             });
 
-
-
-            // Global exception handler (??? ?? middleware)
+            // Global exception handler
             app.UseExceptionHandler(errorApp =>
             {
                 errorApp.Run(async context =>
@@ -61,7 +61,6 @@ namespace E_Com.API
                 });
             });
 
-
             // Auto-Migrate with error handling
             using (var scope = app.Services.CreateScope())
             {
@@ -69,15 +68,17 @@ namespace E_Com.API
                 {
                     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                     db.Database.Migrate();
-                    Console.WriteLine("? Database migration completed successfully.");
+                    Console.WriteLine(" Database migration completed successfully.");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("? Database migration failed.");
+                    Console.WriteLine(" Database migration failed.");
                     Console.WriteLine("Type: " + ex.GetType().FullName);
                     Console.WriteLine("Message: " + ex.Message);
                 }
             }
+
+            // ENV check
             Console.WriteLine("====== ENV CHECK ======");
             Console.WriteLine("Postgres: " + Environment.GetEnvironmentVariable("ConnectionStrings__EcomDatabase"));
             Console.WriteLine("Redis: " + Environment.GetEnvironmentVariable("ConnectionStrings__redis"));
@@ -88,38 +89,31 @@ namespace E_Com.API
             Console.WriteLine("Email From: " + Environment.GetEnvironmentVariable("EmailSetting__From"));
             Console.WriteLine("=======================");
 
+            // DB connection check
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 try
                 {
-                    Console.WriteLine("?? Checking DB connection...");
+                    Console.WriteLine("  Checking DB connection...");
                     bool canConnect = db.Database.CanConnect();
-                    Console.WriteLine("? DB CanConnect: " + canConnect);
+                    Console.WriteLine(" DB CanConnect: " + canConnect);
 
                     var pendingMigrations = db.Database.GetPendingMigrations().ToList();
-                    Console.WriteLine("?? Pending migrations: " + string.Join(",", pendingMigrations));
+                    Console.WriteLine(" Pending migrations: " + string.Join(",", pendingMigrations));
 
                     if (pendingMigrations.Any())
                     {
-                        Console.WriteLine("?? There are pending migrations, applying now...");
+                        Console.WriteLine(" There are pending migrations, applying now...");
                         db.Database.Migrate();
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("? DB Exception: " + ex.Message);
+                    Console.WriteLine(" DB Exception: " + ex.Message);
                     Console.WriteLine(ex.StackTrace);
                 }
             }
-
-            app.Use(async (context, next) =>
-            {
-                Console.WriteLine($"?? Incoming Request: {context.Request.Method} {context.Request.Path}");
-                await next.Invoke();
-                Console.WriteLine($"?? Response: {context.Response.StatusCode}");
-            });
-
 
             if (app.Environment.IsDevelopment())
             {
@@ -129,14 +123,13 @@ namespace E_Com.API
 
             app.UseCors("CORSPolicy");
 
-            //app.UseHttpsRedirection();   // moved up
+            // ?? ??? https redirect ??? ????? ???
+            // app.UseHttpsRedirection();
+
             app.UseStaticFiles();
 
-            app.UseMiddleware<ExceptionsMiddleware>();
             app.UseAuthentication();
             app.UseAuthorization();
-
-            app.UseStatusCodePagesWithReExecute("/errors/{0}");
 
             app.MapControllers();
             app.Run();
