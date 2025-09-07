@@ -81,11 +81,27 @@ namespace E_Com.API.Controllers
         [HttpPost("Register")]
         public async Task<IActionResult> Register(RegisterDTO registerDTO)
         {
-            string result = await work.Auth.RegisterAsync(registerDTO);
-            if (result != "done")
-                return BadRequest(new ResponseAPI(400, result));
+            Console.WriteLine("➡️ Register endpoint called");
 
-            return Ok(new ResponseAPI(200, result));
+            try
+            {
+                string result = await work.Auth.RegisterAsync(registerDTO);
+                Console.WriteLine("✅ RegisterAsync result: " + result);
+
+                if (result != "done")
+                {
+                    Console.WriteLine("⚠️ Register failed: " + result);
+                    return BadRequest(new ResponseAPI(400, result));
+                }
+
+                return Ok(new ResponseAPI(200, result));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("❌ Exception in Register: " + ex.Message);
+                Console.WriteLine(ex.StackTrace);
+                return StatusCode(500, new ResponseAPI(500, ex.Message));
+            }
         }
 
         [HttpPost("Login")]

@@ -32,35 +32,60 @@ namespace E_Com.infrastructure.Repositries
         }
         public async Task<string> RegisterAsync(RegisterDTO registerDTO)
         {
-            if (registerDTO == null)
+            try
             {
-                return null;
-            }
-            if (await userManager.FindByNameAsync(registerDTO.UserName) is not null)
-            { 
-                return "Username already exists";
-            }
-            if (await userManager.FindByEmailAsync(registerDTO.Email) is not null)
-            {
-                return "Email already exists";
-            }
-            var user = new AppUser
-            {
-                UserName = registerDTO.UserName,
-                Email = registerDTO.Email,
-                DisplayName = registerDTO.DisplayName,
-            };
-            var result = await userManager.CreateAsync(user, registerDTO.Password);
-            if (result.Succeeded is not true)
+                if (registerDTO == null)
+                {
+                    Console.WriteLine("⚠️ RegisterAsync called with NULL DTO");
+                    return null;
+                }
 
-            {
-                return result.Errors.ToList()[0].Description;   
+                Console.WriteLine("➡️ Checking username: " + registerDTO.UserName);
+
+                if (await userManager.FindByNameAsync(registerDTO.UserName) is not null)
+                {
+                    return "Username already exists";
+                }
+
+                if (await userManager.FindByEmailAsync(registerDTO.Email) is not null)
+                {
+                    return "Email already exists";
+                }
+
+                var user = new AppUser
+                {
+                    UserName = registerDTO.UserName,
+                    Email = registerDTO.Email,
+                    DisplayName = registerDTO.DisplayName,
+                };
+
+                Console.WriteLine("➡️ Creating user in Identity...");
+                var result = await userManager.CreateAsync(user, registerDTO.Password);
+
+                if (!result.Succeeded)
+                {
+                    var err = result.Errors.FirstOrDefault()?.Description;
+                    Console.WriteLine("❌ CreateAsync failed: " + err);
+                    return err;
+                }
+
+                Console.WriteLine("✅ User created successfully, generating email token...");
+                string token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                Console.WriteLine("➡️ Sending activation email...");
+                await SendEmail(user.Email, token, "active", "ActiveEmail", "please active your email ,click on button to active");
+
+                Console.WriteLine("✅ Email sent successfully");
+                return "done";
             }
-            //Send Active Email
-            string token = await userManager.GenerateEmailConfirmationTokenAsync(user);
-            await SendEmail(user.Email, token, "active", "ActiveEmail", "please active your email ,click on button to active");
-            return "done";
+            catch (Exception ex)
+            {
+                Console.WriteLine("❌ Exception in RegisterAsync: " + ex.Message);
+                Console.WriteLine(ex.StackTrace);
+                throw;
+            }
         }
+
         public async Task SendEmail(string email , string code , string component , string subject ,string message)
         {
             var result = new EmailDTO(email,
