@@ -38,12 +38,25 @@ public static class infrastructureRegisteration
         }
         else
         {
-            services.AddSingleton<IConnectionMultiplexer>(i =>
+            services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
-                var config = ConfigurationOptions.Parse(redisConfig);
-                return ConnectionMultiplexer.Connect(config);
+                try
+                {
+                    var options = ConfigurationOptions.Parse(redisConfig, true);
+                    options.AbortOnConnectFail = false; // أهم تعديل
+                    var multiplexer = ConnectionMultiplexer.Connect(options);
+                    Console.WriteLine("✅ Connected to Redis successfully.");
+                    return multiplexer;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("❌ Failed to connect to Redis: " + ex.Message);
+                    // مهم: ما نوقف البرنامج، نرجع Multiplexer فارغ
+                    return ConnectionMultiplexer.Connect("localhost:6379,abortConnect=false");
+                }
             });
         }
+
 
         services.AddSingleton<IImageManagementService, ImageManagementService>();
         services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")));
