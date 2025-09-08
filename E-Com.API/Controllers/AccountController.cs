@@ -117,7 +117,7 @@ namespace E_Com.API.Controllers
                 Secure = true,
                 SameSite = SameSiteMode.None,
                 IsEssential = true,
-                Domain = "localhost",
+                //Domain = "localhost",
                 Expires = DateTime.Now.AddDays(1)
             });
 
