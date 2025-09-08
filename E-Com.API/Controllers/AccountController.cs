@@ -124,21 +124,12 @@ namespace E_Com.API.Controllers
             return Ok(new ResponseAPI(200, "Login successful"));
         }
 
-        [HttpGet("active-account")]
-        public async Task<IActionResult> ActiveAccountGet(string email, string code)
+        [HttpPost("active-account")]
+        public async Task<ActionResult<ActiveAccountDTO>> ActiveAccount(ActiveAccountDTO accountDTO)
         {
-            var dto = new ActiveAccountDTO
-            {
-                Email = email,
-                Token = code
-            };
-
-            var result = await work.Auth.ActiveAccount(dto);
-            return result
-                ? Ok(new ResponseAPI(200, "Email confirmed successfully"))
-                : BadRequest(new ResponseAPI(400, "Invalid or expired token"));
+            var result = await work.Auth.ActiveAccount(accountDTO);
+            return result ? Ok(new ResponseAPI(200)) : BadRequest(new ResponseAPI(400));
         }
-
 
         [HttpGet("send-email-forget-password")]
         public async Task<IActionResult> ForgetPassword(string email)
