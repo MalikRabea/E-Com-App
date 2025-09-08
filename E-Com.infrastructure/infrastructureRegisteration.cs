@@ -51,8 +51,7 @@ public static class infrastructureRegisteration
                 catch (Exception ex)
                 {
                     Console.WriteLine("❌ Failed to connect to Redis: " + ex.Message);
-                    // مهم: ما نوقف البرنامج، نرجع Multiplexer فارغ
-                    return ConnectionMultiplexer.Connect("localhost:6379,abortConnect=false");
+                    throw;
                 }
             });
         }

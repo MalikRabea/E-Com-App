@@ -161,7 +161,7 @@ namespace E_Com.infrastructure.Repositries
                 return true;
             var token = await userManager.GenerateEmailConfirmationTokenAsync(findUser);
 
-            await SendEmail(findUser.Email, token, "active", "ActiveEmail", "please active your email ,click on button to active");
+            await SendEmail(findUser.Email, token, "active-account", "ActiveEmail", "please active your email ,click on button to active");
             return false;
 
         }
