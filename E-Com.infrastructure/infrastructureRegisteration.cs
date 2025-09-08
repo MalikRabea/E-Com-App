@@ -30,20 +30,25 @@ public static class infrastructureRegisteration
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 
-        // Redis
         var redisConfig = Environment.GetEnvironmentVariable("ConnectionStrings__redis");
-        if (string.IsNullOrWhiteSpace(redisConfig))
-        {
-            Console.WriteLine("⚠️ Redis connection string is missing. Check your environment variables.");
-        }
-        else
+
+        if (!string.IsNullOrWhiteSpace(redisConfig))
         {
             services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
                 try
                 {
-                    var options = ConfigurationOptions.Parse(redisConfig, true);
-                    options.AbortOnConnectFail = false; // أهم تعديل
+                    var uri = new Uri(redisConfig);
+
+                    var options = new ConfigurationOptions
+                    {
+                        EndPoints = { { uri.Host, uri.Port } },
+                        User = uri.UserInfo.Split(':')[0],
+                        Password = uri.UserInfo.Split(':')[1],
+                        Ssl = uri.Scheme == "rediss", // Upstash uses TLS
+                        AbortOnConnectFail = false
+                    };
+
                     var multiplexer = ConnectionMultiplexer.Connect(options);
                     Console.WriteLine("✅ Connected to Redis successfully.");
                     return multiplexer;
@@ -55,6 +60,11 @@ public static class infrastructureRegisteration
                 }
             });
         }
+        else
+        {
+            Console.WriteLine("⚠️ Redis connection string is missing. Check your environment variables.");
+        }
+
 
 
         services.AddSingleton<IImageManagementService, ImageManagementService>();
