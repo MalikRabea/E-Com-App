@@ -21,8 +21,4 @@
     <ProjectReference Include="..\E-Com.infrastructure\E-Com.infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="wwwroot\" />
-  </ItemGroup>
-
 </Project>
