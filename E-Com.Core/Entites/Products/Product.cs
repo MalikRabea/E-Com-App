@@ -24,6 +24,8 @@ namespace E_Com.Core.Entites.Products
         public double rating { get; set; }
 
 
+
+
         //best seller   
         public int SoldCount { get; set; } = 0;
 

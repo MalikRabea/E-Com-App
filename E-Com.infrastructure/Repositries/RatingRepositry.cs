@@ -38,6 +38,8 @@ namespace E_Com.infrastructure.Repositries
                 ProductId = ratingDTO.productId,
                 Stars = ratingDTO.stars,
                 content = ratingDTO.content,
+                Review = DateTime.UtcNow 
+
 
             };
             await _context.Ratings.AddAsync(rating);

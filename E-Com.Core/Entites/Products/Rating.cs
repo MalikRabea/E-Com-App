@@ -13,7 +13,7 @@ namespace E_Com.Core.Entites.Products
         [Range(1, 5)]
         public int Stars { get; set; }
         public string content { get; set; }
-        public DateTime Review { get; set; } = DateTime.Now;
+        public DateTime Review { get; set; } = DateTime.UtcNow;
         public string AppUserId { get; set; }
         [ForeignKey(nameof(AppUserId))]
         public virtual AppUser AppUser { get; set; }
