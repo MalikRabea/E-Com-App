@@ -9,7 +9,7 @@ namespace E_Com.infrastructure.Data
         {
             var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
 
-            // ⚠️ هذا كونكشن محلي (PostgreSQL اللي نزلته)
+            //    (PostgreSQL)
             optionsBuilder.UseNpgsql("Host=localhost;Port=5432;Database=testdb;Username=postgres;Password=123456");
 
             return new AppDbContext(optionsBuilder.Options);

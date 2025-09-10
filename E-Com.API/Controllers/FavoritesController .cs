@@ -20,17 +20,20 @@ namespace E_Com.API.Controllers
             _userManager = userManager;
         }
 
-        // إضافة إلى المفضلة
         [HttpPost("{productId}")]
-        public async Task<IActionResult> AddToFavorites(int productId, [FromQuery] string username)
+        public async Task<IActionResult> AddToFavorites(int productId)
         {
-            if (string.IsNullOrEmpty(username)) return Unauthorized();
+            var username = User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+                return Unauthorized();
 
             var user = await _userManager.FindByNameAsync(username);
-            if (user == null) return Unauthorized();
+            if (user == null)
+                return Unauthorized();
 
             var existing = await _favoriteRepo.GetByUserAndProductAsync(user.Id, productId);
-            if (existing != null) return BadRequest("Already in favorites");
+            if (existing != null)
+                return BadRequest("Already in favorites");
 
             var favorite = new Favorite { UserId = user.Id, ProductId = productId };
             await _favoriteRepo.AddAsync(favorite);
@@ -38,30 +41,35 @@ namespace E_Com.API.Controllers
             return Ok(favorite);
         }
 
-        // إزالة من المفضلة
         [HttpDelete("{productId}")]
-        public async Task<IActionResult> RemoveFromFavorites(int productId, [FromQuery] string username)
+        public async Task<IActionResult> RemoveFromFavorites(int productId)
         {
-            if (string.IsNullOrEmpty(username)) return Unauthorized();
+            var username = User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+                return Unauthorized();
 
             var user = await _userManager.FindByNameAsync(username);
-            if (user == null) return Unauthorized();
+            if (user == null)
+                return Unauthorized();
 
             var favorite = await _favoriteRepo.GetByUserAndProductAsync(user.Id, productId);
-            if (favorite == null) return NotFound();
+            if (favorite == null)
+                return NotFound();
 
             await _favoriteRepo.RemoveAsync(favorite);
-            return Ok();
+            return Ok(new { message = "Removed from favorites" });
         }
 
-        // جلب المفضلة
         [HttpGet]
-        public async Task<IActionResult> GetFavorites([FromQuery] string username)
+        public async Task<IActionResult> GetFavorites()
         {
-            if (string.IsNullOrEmpty(username)) return Unauthorized();
+            var username = User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+                return Unauthorized();
 
             var user = await _userManager.FindByNameAsync(username);
-            if (user == null) return Unauthorized();
+            if (user == null)
+                return Unauthorized();
 
             var favorites = await _favoriteRepo.GetUserFavoritesAsync(user.Id);
             return Ok(favorites);
