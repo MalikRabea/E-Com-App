@@ -79,6 +79,8 @@ namespace E_Com.infrastructure.Repositries.Service
                 orderItems,
                 basket.PaymentIntentId
             );
+            order.OrderDate = DateTime.UtcNow;
+
 
             await _context.Orders.AddAsync(order);
 
