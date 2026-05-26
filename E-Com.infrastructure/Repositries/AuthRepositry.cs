@@ -112,8 +112,8 @@ namespace E_Com.infrastructure.Repositries
             }
             var result = await signInManager.CheckPasswordSignInAsync(finduser, login.Password, true);
             if (result.Succeeded) {
-
-                return generateToken.GetAndCreateToken(finduser);
+                var roles = await userManager.GetRolesAsync(finduser);
+                return generateToken.GetAndCreateToken(finduser, roles);
             }
             return "Invalid email or password.";
         }

@@ -19,13 +19,16 @@ namespace E_Com.infrastructure.Repositries.Service
         {
             this.configuration = configuration;
         }
-        public string GetAndCreateToken(AppUser user)
+        public string GetAndCreateToken(AppUser user, IList<string> roles)
         {
             List<Claim> claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.UserName),
                 new Claim(ClaimTypes.Email, user.Email),
             };
+
+            foreach (var role in roles)
+                claims.Add(new Claim(ClaimTypes.Role, role));
             var Security = configuration["Token:Secret"];
             var key = Encoding.ASCII.GetBytes(Security);
              SigningCredentials credentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256);

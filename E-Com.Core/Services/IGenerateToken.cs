@@ -9,6 +9,6 @@ namespace E_Com.Core.Services
 {
     public interface IGenerateToken
     {
-        string GetAndCreateToken(AppUser user);
+        string GetAndCreateToken(AppUser user, IList<string> roles);
     }
 }

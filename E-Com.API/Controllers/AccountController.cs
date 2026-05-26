@@ -24,6 +24,13 @@ namespace E_Com.API.Controllers
             return Ok(new { isAuthenticated = User?.Identity?.IsAuthenticated ?? false });
         }
 
+        [Authorize]
+        [HttpGet("is-admin")]
+        public IActionResult IsAdmin()
+        {
+            return Ok(new { isAdmin = User.IsInRole("Admin") });
+        }
+
         [HttpGet("get-address-for-user")]
         public async Task<IActionResult> GetAddress()
         {
