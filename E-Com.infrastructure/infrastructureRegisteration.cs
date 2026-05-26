@@ -1,4 +1,5 @@
-﻿using E_Com.Core.Entites;
+﻿using CloudinaryDotNet;
+using E_Com.Core.Entites;
 using E_Com.Core.interfaces;
 using E_Com.Core.Services;
 using E_Com.infrastructure.Data;
@@ -10,7 +11,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Text;
@@ -67,8 +67,23 @@ public static class infrastructureRegisteration
 
 
 
+        // Cloudinary image storage
+        var cloudName   = Environment.GetEnvironmentVariable("Cloudinary__CloudName");
+        var apiKey      = Environment.GetEnvironmentVariable("Cloudinary__ApiKey");
+        var apiSecret   = Environment.GetEnvironmentVariable("Cloudinary__ApiSecret");
+
+        if (string.IsNullOrWhiteSpace(cloudName) || string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(apiSecret))
+        {
+            Console.WriteLine("⚠️ Cloudinary configuration is missing. Check your environment variables.");
+        }
+        else
+        {
+            var account = new Account(cloudName, apiKey, apiSecret);
+            services.AddSingleton(new Cloudinary(account));
+            Console.WriteLine("✅ Cloudinary configured.");
+        }
+
         services.AddSingleton<IImageManagementService, ImageManagementService>();
-        services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")));
 
         var connectionString = configuration.GetConnectionString("EcomDatabase")
                       ?? Environment.GetEnvironmentVariable("ConnectionStrings__EcomDatabase");
