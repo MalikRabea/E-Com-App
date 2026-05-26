@@ -83,17 +83,23 @@ namespace E_Com.infrastructure.Repositries
         {
             if (productDTO == null) return false;
 
+            // Upload images first — fail early before touching the DB
+            var imagePaths = await imageManagementService.AddImageAsync(productDTO.Photo, productDTO.Name);
+
             var product = mapper.Map<Product>(productDTO);
             await context.Products.AddAsync(product);
             await context.SaveChangesAsync();
-            var ImagePath = await imageManagementService.AddImageAsync(productDTO.Photo, productDTO.Name);
-            var phtot = ImagePath.Select(path => new Photo
+
+            if (imagePaths.Count > 0)
             {
-                ImageName = path,
-                ProductId = product.Id
-            }).ToList();
-            await context.Photos.AddRangeAsync(phtot);
-            await context.SaveChangesAsync();
+                var photos = imagePaths.Select(path => new Photo
+                {
+                    ImageName = path,
+                    ProductId = product.Id
+                }).ToList();
+                await context.Photos.AddRangeAsync(photos);
+                await context.SaveChangesAsync();
+            }
             return true;
         }
 

@@ -67,22 +67,18 @@ public static class infrastructureRegisteration
 
 
 
-        // Cloudinary image storage
-        var cloudName   = Environment.GetEnvironmentVariable("Cloudinary__CloudName");
-        var apiKey      = Environment.GetEnvironmentVariable("Cloudinary__ApiKey");
-        var apiSecret   = Environment.GetEnvironmentVariable("Cloudinary__ApiSecret");
+        // Cloudinary image storage — always register so DI never fails
+        var cloudName = Environment.GetEnvironmentVariable("Cloudinary__CloudName") ?? "";
+        var apiKey    = Environment.GetEnvironmentVariable("Cloudinary__ApiKey")    ?? "";
+        var apiSecret = Environment.GetEnvironmentVariable("Cloudinary__ApiSecret") ?? "";
 
         if (string.IsNullOrWhiteSpace(cloudName) || string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(apiSecret))
-        {
-            Console.WriteLine("⚠️ Cloudinary configuration is missing. Check your environment variables.");
-        }
+            Console.WriteLine("⚠️ Cloudinary configuration is missing. Image uploads will fail until env vars are set.");
         else
-        {
-            var account = new Account(cloudName, apiKey, apiSecret);
-            services.AddSingleton(new Cloudinary(account));
             Console.WriteLine("✅ Cloudinary configured.");
-        }
 
+        var cloudinaryAccount = new Account(cloudName, apiKey, apiSecret);
+        services.AddSingleton(new Cloudinary(cloudinaryAccount));
         services.AddSingleton<IImageManagementService, ImageManagementService>();
 
         var connectionString = configuration.GetConnectionString("EcomDatabase")

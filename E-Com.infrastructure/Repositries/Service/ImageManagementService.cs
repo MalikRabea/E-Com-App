@@ -17,6 +17,8 @@ namespace E_Com.infrastructure.Repositries.Service
         public async Task<List<string>> AddImageAsync(IFormFileCollection files, string src)
         {
             var savedUrls = new List<string>();
+            if (files == null || files.Count == 0) return savedUrls;
+
             var folder = $"eshop/{src.Replace(" ", "_")}";
 
             foreach (var file in files)
