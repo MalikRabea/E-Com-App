@@ -117,21 +117,31 @@ namespace E_Com.API.Controllers
         [HttpPost("Login")]
         public async Task<IActionResult> Login(LoginDTO loginDTO)
         {
-            string result = await work.Auth.LoginEmail(loginDTO);
-            if (result.StartsWith("please"))
-                return BadRequest(new ResponseAPI(400, result));
-
-            Response.Cookies.Append("token", result, new CookieOptions
+            try
             {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None,
-                IsEssential = true,
-                //Domain = "localhost",
-                Expires = DateTime.Now.AddDays(1)
-            });
+                string result = await work.Auth.LoginEmail(loginDTO);
 
-            return Ok(new ResponseAPI(200, "Login successful"));
+                if (result == "Invalid email or password." ||
+                    result.StartsWith("Email not confirmed"))
+                    return BadRequest(new ResponseAPI(400, result));
+
+                Response.Cookies.Append("token", result, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    IsEssential = true,
+                    Expires = DateTime.Now.AddDays(1)
+                });
+
+                return Ok(new ResponseAPI(200, "Login successful"));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[LOGIN ERROR] {ex.GetType().Name}: {ex.Message}");
+                Console.WriteLine($"[LOGIN STACK] {ex.StackTrace}");
+                return StatusCode(500, new ResponseAPI(500, $"Login failed: {ex.Message}"));
+            }
         }
 
         [HttpPost("active-account")]
