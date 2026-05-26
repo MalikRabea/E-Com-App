@@ -101,5 +101,65 @@ namespace E_Com.API.Controllers
                 PageSize = pageSize
             });
         }
+
+        [HttpPatch("orders/{id}/status")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateStatusDTO dto)
+        {
+            var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound();
+            if (!Enum.TryParse<Status>(dto.Status, out var newStatus))
+                return BadRequest("Invalid status value");
+            order.status = newStatus;
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsers()
+        {
+            var users = await _userManager.Users.ToListAsync();
+            var result = new List<UserDTO>();
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                result.Add(new UserDTO
+                {
+                    Id          = user.Id,
+                    Email       = user.Email ?? "",
+                    DisplayName = user.DisplayName,
+                    Role        = roles.FirstOrDefault() ?? "User"
+                });
+            }
+            return Ok(result);
+        }
+
+        [HttpDelete("users/{id}")]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded) return BadRequest("Could not delete user");
+            return Ok();
+        }
+
+        [HttpGet("monthly-sales")]
+        public async Task<IActionResult> GetMonthlySales()
+        {
+            var cutoff = DateTime.UtcNow.AddMonths(-6);
+            var data = await _context.Orders
+                .Where(o => o.status == Status.PaymentReceived && o.OrderDate >= cutoff)
+                .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
+                .Select(g => new MonthlySalesDTO
+                {
+                    Year    = g.Key.Year,
+                    Month   = g.Key.Month,
+                    Revenue = g.Sum(o => o.SubTotal),
+                    Count   = g.Count()
+                })
+                .OrderBy(x => x.Year).ThenBy(x => x.Month)
+                .ToListAsync();
+            return Ok(data);
+        }
     }
 }

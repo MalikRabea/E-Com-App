@@ -1,5 +1,23 @@
 namespace E_Com.Core.DTO
 {
+    public record UpdateStatusDTO { public string Status { get; set; } = ""; }
+
+    public record UserDTO
+    {
+        public string Id          { get; set; } = "";
+        public string Email       { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Role        { get; set; } = "";
+    }
+
+    public record MonthlySalesDTO
+    {
+        public int     Year    { get; set; }
+        public int     Month   { get; set; }
+        public decimal Revenue { get; set; }
+        public int     Count   { get; set; }
+    }
+
     public record AdminStatsDTO
     {
         public int TotalProducts { get; set; }

@@ -6,6 +6,8 @@ namespace E_Com.Core.Entites.Order
     {
         Pending,
         PaymentReceived,
-        PaymentFailed
+        PaymentFailed,
+        Shipped,
+        Delivered
     }
 }
