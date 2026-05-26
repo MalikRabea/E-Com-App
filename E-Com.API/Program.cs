@@ -103,6 +103,7 @@ namespace E_Com.API
                             UserName = "admin",
                             Email = adminEmail,
                             EmailConfirmed = true,
+                            DisplayName = "Admin",
                         };
                         var result = await userManager.CreateAsync(adminUser, "Admin@123456");
                         if (result.Succeeded)
