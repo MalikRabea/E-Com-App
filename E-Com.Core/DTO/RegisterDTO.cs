@@ -26,7 +26,16 @@ namespace E_Com.Core.DTO
     {
         public string Email { get; set; }
         public string Token { get; set; }
+    }
 
+    public record ChangePasswordDTO
+    {
+        public string CurrentPassword { get; set; }
+        public string NewPassword { get; set; }
+    }
 
+    public record UpdateProfileDTO
+    {
+        public string DisplayName { get; set; }
     }
 }

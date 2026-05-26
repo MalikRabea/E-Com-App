@@ -5,6 +5,7 @@ using E_Com.Core.Entites;
 using E_Com.Core.interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
@@ -14,8 +15,11 @@ namespace E_Com.API.Controllers
 {
     public class AccountController : BaseController
     {
-        public AccountController(IUnitOfWork work, IMapper mapper) : base(work, mapper)
+        private readonly UserManager<AppUser> _userManager;
+
+        public AccountController(IUnitOfWork work, IMapper mapper, UserManager<AppUser> userManager) : base(work, mapper)
         {
+            _userManager = userManager;
         }
 
         [HttpGet("IsUserAuth")]
@@ -166,6 +170,44 @@ namespace E_Com.API.Controllers
                 return Ok(new ResponseAPI(200));
 
             return BadRequest(new ResponseAPI(400));
+        }
+
+        [Authorize]
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile()
+        {
+            var email = User?.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email)) return Unauthorized();
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user is null) return NotFound();
+            return Ok(new { email = user.Email, displayName = user.DisplayName });
+        }
+
+        [Authorize]
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDTO dto)
+        {
+            var email = User?.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email)) return Unauthorized();
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user is null) return NotFound();
+            user.DisplayName = dto.DisplayName;
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded) return Ok(new ResponseAPI(200, "Profile updated"));
+            return BadRequest(new ResponseAPI(400, result.Errors.FirstOrDefault()?.Description ?? "Update failed"));
+        }
+
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword(ChangePasswordDTO dto)
+        {
+            var email = User?.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized(new ResponseAPI(401, "Not logged in"));
+
+            var result = await work.Auth.ChangePassword(email, dto);
+            if (result == "done") return Ok(new ResponseAPI(200, "Password changed successfully"));
+            return BadRequest(new ResponseAPI(400, result));
         }
     }
 }

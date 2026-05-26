@@ -25,5 +25,7 @@ namespace E_Com.Core.interfaces
 
         Task<Address> getUserAddress(string email);
 
+        Task<string> ChangePassword(string email, ChangePasswordDTO dto);
+
     }
 }

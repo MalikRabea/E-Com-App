@@ -363,6 +363,9 @@ namespace E_Com.infrastructure.Data.Migrations
                     b.Property<int>("SoldCount")
                         .HasColumnType("integer");
 
+                    b.Property<int>("StockQuantity")
+                        .HasColumnType("integer");
+
                     b.Property<double>("rating")
                         .HasColumnType("double precision");
 
@@ -382,6 +385,7 @@ namespace E_Com.infrastructure.Data.Migrations
                             NewPrice = 1m,
                             OldPrice = 0m,
                             SoldCount = 0,
+                            StockQuantity = 0,
                             rating = 0.0
                         });
                 });

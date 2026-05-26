@@ -15,6 +15,7 @@ namespace E_Com.Core.interfaces
         Task<ReturnProductDTO> GetAllAsync(ProductParams productParams);
 
         Task<IReadOnlyList<Product>> GetBestSellersAsync(int count);
+        Task<IReadOnlyList<ProductDTO>> GetRelatedAsync(int productId, int categoryId, int count = 4);
 
         Task<bool> AddAsync(AddProductDTO productDTO);
         Task<bool> UpdateAsync(UpdateProductDTO updateProductDTO );

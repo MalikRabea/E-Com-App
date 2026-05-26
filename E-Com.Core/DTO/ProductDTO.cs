@@ -26,6 +26,8 @@ namespace E_Com.Core.DTO
         //best seller
         public int SoldCount { get; set; }
 
+        public int StockQuantity { get; set; }
+
 
 
     }
@@ -51,6 +53,7 @@ namespace E_Com.Core.DTO
         public decimal NewPrice { get; set; }
         public decimal OldPrice { get; set; }
         public int CategoryId { get; set; }
+        public int StockQuantity { get; set; } = 0;
 
         public IFormFileCollection Photo { get; set; }
     }

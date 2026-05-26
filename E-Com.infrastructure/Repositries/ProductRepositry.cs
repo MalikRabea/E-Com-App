@@ -150,11 +150,23 @@ namespace E_Com.infrastructure.Repositries
         public async Task<IReadOnlyList<Product>> GetBestSellersAsync(int count)
         {
                  return await context.Products
-                 .Include(p => p.Photos) // << مهم لترجع الصور
-
+                 .Include(p => p.Photos)
                  .OrderByDescending(p => p.SoldCount)
                  .Take(count)
                  .ToListAsync();
+        }
+
+        public async Task<IReadOnlyList<ProductDTO>> GetRelatedAsync(int productId, int categoryId, int count = 4)
+        {
+            var products = await context.Products
+                .Include(p => p.Photos)
+                .Include(p => p.Category)
+                .Where(p => p.CategoryId == categoryId && p.Id != productId)
+                .OrderByDescending(p => p.SoldCount)
+                .Take(count)
+                .AsNoTracking()
+                .ToListAsync();
+            return mapper.Map<List<ProductDTO>>(products);
         }
     }
 }

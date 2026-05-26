@@ -26,8 +26,10 @@ namespace E_Com.Core.Entites.Products
 
 
 
-        //best seller   
+        //best seller
         public int SoldCount { get; set; } = 0;
+
+        public int StockQuantity { get; set; } = 0;
 
 
 

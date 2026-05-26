@@ -205,5 +205,14 @@ namespace E_Com.infrastructure.Repositries
             var address = await context.Addresses.FirstOrDefaultAsync(m => m.AppUserId == User.Id);
             return address;
         }
+
+        public async Task<string> ChangePassword(string email, ChangePasswordDTO dto)
+        {
+            var user = await userManager.FindByEmailAsync(email);
+            if (user is null) return "User not found";
+            var result = await userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+            if (result.Succeeded) return "done";
+            return result.Errors.FirstOrDefault()?.Description ?? "Password change failed";
+        }
     }
 }

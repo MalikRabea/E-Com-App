@@ -110,6 +110,22 @@ namespace E_Com.API.Controllers
             return Ok(products);
         }
 
+        [HttpGet("related/{id}")]
+        public async Task<IActionResult> GetRelated(int id)
+        {
+            try
+            {
+                var product = await work.ProductRepositry.GetByIdAsync(id);
+                if (product is null) return NotFound();
+                var related = await work.ProductRepositry.GetRelatedAsync(id, product.CategoryId);
+                return Ok(related);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResponseAPI(400, ex.Message));
+            }
+        }
+
     }
 
 }
