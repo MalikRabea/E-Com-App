@@ -1,0 +1,105 @@
+using E_Com.Core.Entites;
+using E_Com.infrastructure;
+using E_Com.infrastructure.Data;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.RateLimiting;
+
+namespace E_Com.API
+{
+    public class Program
+    {
+        public static async Task Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
+
+            // CORS — reads origin from environment variable
+            var allowedOrigin = Environment.GetEnvironmentVariable("CORS__AllowedOrigin")
+                                ?? "https://e-com-app-ngx.onrender.com";
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("CORSPolicy", policy =>
+                {
+                    policy.AllowAnyHeader()
+                          .AllowAnyMethod()
+                          .AllowCredentials()
+                          .WithOrigins(allowedOrigin);
+                });
+            });
+
+            // Rate Limiting — 5 requests per minute on auth endpoints
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.AddFixedWindowLimiter("auth", opt =>
+                {
+                    opt.PermitLimit = 5;
+                    opt.Window = TimeSpan.FromMinutes(1);
+                    opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                    opt.QueueLimit = 0;
+                });
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            });
+
+            builder.Services.AddMemoryCache();
+            builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+            builder.Services.infrastructureConfiguration(builder.Configuration);
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+            var app = builder.Build();
+
+            // Global exception handler — never expose stack trace to client
+            app.UseExceptionHandler(errorApp =>
+            {
+                errorApp.Run(async context =>
+                {
+                    var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>()?.Error;
+                    Console.WriteLine($"[ERROR] {error?.Message}");
+                    Console.WriteLine($"[STACK] {error?.StackTrace}");
+                    context.Response.StatusCode = 500;
+                    await context.Response.WriteAsJsonAsync(new
+                    {
+                        Message = "An unexpected error occurred."
+                    });
+                });
+            });
+
+            // Migration + role seeding
+            using (var scope = app.Services.CreateScope())
+            {
+                try
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    db.Database.Migrate();
+                    Console.WriteLine("✅ Database migration completed.");
+
+                    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                    foreach (var role in new[] { "Admin", "User" })
+                    {
+                        if (!await roleManager.RoleExistsAsync(role))
+                        {
+                            await roleManager.CreateAsync(new IdentityRole(role));
+                            Console.WriteLine($"✅ Role '{role}' created.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("❌ Startup error: " + ex.Message);
+                }
+            }
+
+            app.UseSwagger();
+            app.UseSwaggerUI();
+            app.UseCors("CORSPolicy");
+            app.UseStaticFiles();
+            app.UseRateLimiter();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.MapControllers();
+            await app.RunAsync();
+        }
+    }
+}
