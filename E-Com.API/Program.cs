@@ -4,6 +4,7 @@ using E_Com.infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Threading.RateLimiting;
 
 namespace E_Com.API
@@ -82,6 +83,29 @@ namespace E_Com.API
                         {
                             await roleManager.CreateAsync(new IdentityRole(role));
                             Console.WriteLine($"✅ Role '{role}' created.");
+                        }
+                    }
+
+                    // Seed default admin account
+                    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
+                    const string adminEmail = "admin@eshop.com";
+                    if (await userManager.FindByEmailAsync(adminEmail) == null)
+                    {
+                        var adminUser = new AppUser
+                        {
+                            UserName = "admin",
+                            Email = adminEmail,
+                            EmailConfirmed = true,
+                        };
+                        var result = await userManager.CreateAsync(adminUser, "Admin@123456");
+                        if (result.Succeeded)
+                        {
+                            await userManager.AddToRoleAsync(adminUser, "Admin");
+                            Console.WriteLine("✅ Admin user seeded.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("❌ Admin seed failed: " + string.Join(", ", result.Errors.Select(e => e.Description)));
                         }
                     }
                 }
