@@ -67,15 +67,23 @@ namespace E_Com.API
                 });
             });
 
-            // Migration + role seeding
             using (var scope = app.Services.CreateScope())
             {
+                // Migration — separate try so a transient DB error doesn't block seeding
                 try
                 {
                     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                     db.Database.Migrate();
                     Console.WriteLine("✅ Database migration completed.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("⚠️ Migration warning (may already be applied): " + ex.Message);
+                }
 
+                // Role + admin seed — runs independently of migration result
+                try
+                {
                     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                     foreach (var role in new[] { "Admin", "User" })
                     {
@@ -86,7 +94,6 @@ namespace E_Com.API
                         }
                     }
 
-                    // Seed default admin account
                     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
                     const string adminEmail = "admin@eshop.com";
                     if (await userManager.FindByEmailAsync(adminEmail) == null)
@@ -108,10 +115,14 @@ namespace E_Com.API
                             Console.WriteLine("❌ Admin seed failed: " + string.Join(", ", result.Errors.Select(e => e.Description)));
                         }
                     }
+                    else
+                    {
+                        Console.WriteLine("ℹ️ Admin user already exists.");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("❌ Startup error: " + ex.Message);
+                    Console.WriteLine("❌ Seed error: " + ex.Message);
                 }
             }
 
