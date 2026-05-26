@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Text;
@@ -68,7 +67,6 @@ public static class infrastructureRegisteration
 
 
         services.AddSingleton<IImageManagementService, ImageManagementService>();
-        services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")));
 
         var connectionString = configuration.GetConnectionString("EcomDatabase")
                       ?? Environment.GetEnvironmentVariable("ConnectionStrings__EcomDatabase");

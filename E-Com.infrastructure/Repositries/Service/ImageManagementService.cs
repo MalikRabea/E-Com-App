@@ -1,53 +1,31 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using E_Com.Core.Services;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.FileProviders;
 
 namespace E_Com.infrastructure.Repositries.Service
 {
     public class ImageManagementService : IImageManagementService
     {
-        private readonly IFileProvider fileProvider;
-        public ImageManagementService(IFileProvider fileProvider)
-        {
-            this.fileProvider = fileProvider;
-        }
         public async Task<List<string>> AddImageAsync(IFormFileCollection files, string src)
         {
-           var SaveImage = new List<string>();
-            var ImageDirectory = Path.Combine("wwwroot" ,"Images" ,src);
-            if (Directory.Exists(ImageDirectory)is not true)
+            var result = new List<string>();
+            if (files == null || files.Count == 0) return result;
+
+            foreach (var file in files)
             {
-                Directory.CreateDirectory(ImageDirectory);
+                if (file.Length <= 0) continue;
+
+                using var ms = new MemoryStream();
+                await file.CopyToAsync(ms);
+                var base64 = Convert.ToBase64String(ms.ToArray());
+                var mimeType = file.ContentType ?? "image/jpeg";
+                result.Add($"data:{mimeType};base64,{base64}");
             }
-            foreach (var item in files)
-            {
-                if (item.Length > 0)
-                {
-                   var Imagename = item.FileName;
-                    var ImageSrc = $"/Images/{src}/{Imagename}";
-                    var root = Path.Combine(ImageDirectory, Imagename);
-                    using (FileStream stream = new FileStream(root, FileMode.Create))
-                    {
-                        await item.CopyToAsync(stream);
-                    }
-                    SaveImage.Add(ImageSrc);
-                }
-            }
-            return SaveImage;
+            return result;
         }
 
         public void DeleteImageAsync(string src)
         {
-            var info = fileProvider.GetFileInfo(src);
-            var root = info.PhysicalPath;
-
-                File.Delete(root);
-
+            // stored in DB — EF Core handles deletion
         }
     }
 }
