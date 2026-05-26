@@ -99,11 +99,15 @@ namespace E_Com.infrastructure.Repositries
         }
         public async Task<string> LoginEmail(LoginDTO login)
         {
-            if (login == null) 
+            if (login == null)
             {
-                return null;
+                return "Invalid email or password.";
             }
             var finduser = await userManager.FindByEmailAsync(login.Email);
+            if (finduser == null)
+            {
+                return "Invalid email or password.";
+            }
             if (!finduser.EmailConfirmed)
             {
                 string token = await userManager.GenerateEmailConfirmationTokenAsync(finduser);
