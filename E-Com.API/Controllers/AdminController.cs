@@ -143,6 +143,66 @@ namespace E_Com.API.Controllers
             return Ok();
         }
 
+        [HttpGet("orders/export")]
+        public async Task<IActionResult> ExportOrdersCsv()
+        {
+            var orders = await _context.Orders
+                .Include(o => o.deliveryMethod)
+                .Include(o => o.orderItems)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Id,BuyerEmail,OrderDate,Total,Status,ItemCount,DeliveryMethod");
+            foreach (var o in orders)
+            {
+                var total = o.SubTotal + (o.deliveryMethod != null ? o.deliveryMethod.Price : 0);
+                var row = string.Join(",",
+                    o.Id,
+                    $"\"{o.BuyerEmail}\"",
+                    o.OrderDate.ToString("yyyy-MM-dd HH:mm"),
+                    total.ToString("F2"),
+                    o.status.ToString(),
+                    o.orderItems?.Count ?? 0,
+                    $"\"{o.deliveryMethod?.Name ?? ""}\"");
+                sb.AppendLine(row);
+            }
+            var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+            return File(bytes, "text/csv", $"orders_{DateTime.UtcNow:yyyyMMdd}.csv");
+        }
+
+        [HttpGet("reviews")]
+        public async Task<IActionResult> GetAllReviews()
+        {
+            var reviews = await _context.Ratings
+                .Include(r => r.AppUser)
+                .Include(r => r.Product)
+                .OrderByDescending(r => r.Review)
+                .ToListAsync();
+
+            var result = reviews.Select(r => new AdminReviewDTO
+            {
+                Id          = r.Id,
+                ProductId   = r.ProductId,
+                ProductName = r.Product?.Name ?? "",
+                UserName    = r.AppUser?.DisplayName ?? r.AppUser?.Email ?? "",
+                Stars       = r.Stars,
+                Content     = r.content,
+                ReviewTime  = r.Review
+            }).ToList();
+            return Ok(result);
+        }
+
+        [HttpDelete("reviews/{id}")]
+        public async Task<IActionResult> DeleteReview(int id)
+        {
+            var review = await _context.Ratings.FindAsync(id);
+            if (review == null) return NotFound();
+            _context.Ratings.Remove(review);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
         [HttpGet("monthly-sales")]
         public async Task<IActionResult> GetMonthlySales()
         {

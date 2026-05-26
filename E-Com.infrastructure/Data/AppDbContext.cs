@@ -35,6 +35,8 @@ namespace E_Com.infrastructure.Data
 
         public virtual DbSet<Favorite> Favorites { get; set; }
 
+        public virtual DbSet<Coupon> Coupons { get; set; }
+
 
 
 

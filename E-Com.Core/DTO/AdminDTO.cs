@@ -57,4 +57,15 @@ namespace E_Com.Core.DTO
         public int Page { get; set; }
         public int PageSize { get; set; }
     }
+
+    public record AdminReviewDTO
+    {
+        public int Id { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = "";
+        public string UserName { get; set; } = "";
+        public int Stars { get; set; }
+        public string Content { get; set; } = "";
+        public DateTime ReviewTime { get; set; }
+    }
 }

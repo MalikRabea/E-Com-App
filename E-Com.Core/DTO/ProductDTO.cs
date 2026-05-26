@@ -28,8 +28,8 @@ namespace E_Com.Core.DTO
 
         public int StockQuantity { get; set; }
 
-
-
+        public decimal? SalePrice { get; set; }
+        public DateTime? SaleEndDate { get; set; }
     }
     public record ReturnProductDTO
     {
@@ -54,6 +54,8 @@ namespace E_Com.Core.DTO
         public decimal OldPrice { get; set; }
         public int CategoryId { get; set; }
         public int StockQuantity { get; set; } = 0;
+        public decimal? SalePrice { get; set; }
+        public DateTime? SaleEndDate { get; set; }
 
         public IFormFileCollection Photo { get; set; }
     }

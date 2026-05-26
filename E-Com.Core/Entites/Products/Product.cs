@@ -31,7 +31,7 @@ namespace E_Com.Core.Entites.Products
 
         public int StockQuantity { get; set; } = 0;
 
-
-
+        public decimal? SalePrice { get; set; }
+        public DateTime? SaleEndDate { get; set; }
     }
 }

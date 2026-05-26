@@ -22,6 +22,25 @@ namespace E_Com.infrastructure.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("E_Com.Core.Entites.Coupon", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code").IsRequired().HasColumnType("text");
+                    b.Property<decimal>("DiscountPercent").HasColumnType("numeric");
+                    b.Property<int>("MaxUses").HasColumnType("integer");
+                    b.Property<int>("CurrentUses").HasColumnType("integer");
+                    b.Property<DateTime?>("ExpiryDate").HasColumnType("timestamp with time zone");
+                    b.Property<bool>("IsActive").HasColumnType("boolean");
+
+                    b.HasKey("Id");
+                    b.ToTable("Coupons");
+                });
+
             modelBuilder.Entity("E_Com.Core.Entites.Address", b =>
                 {
                     b.Property<int>("Id")
@@ -365,6 +384,12 @@ namespace E_Com.infrastructure.Data.Migrations
 
                     b.Property<int>("StockQuantity")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("SalePrice")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("SaleEndDate")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<double>("rating")
                         .HasColumnType("double precision");
