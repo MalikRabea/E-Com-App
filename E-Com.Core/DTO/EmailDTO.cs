@@ -8,6 +8,8 @@ namespace E_Com.Core.DTO
 {
     public class EmailDTO
     {
+        public EmailDTO() { }
+
         public EmailDTO(string to, string from, string subject, string content)
         {
             To = to;
@@ -19,7 +21,6 @@ namespace E_Com.Core.DTO
         public string To { get; set; }
         public string From { get; set; }
         public string Subject { get; set; }
-
         public string Content { get; set; }
     }
 }
