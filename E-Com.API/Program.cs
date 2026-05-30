@@ -1,3 +1,4 @@
+using E_Com.API.Hubs;
 using E_Com.Core.Entites;
 using E_Com.infrastructure;
 using E_Com.infrastructure.Data;
@@ -43,6 +44,7 @@ namespace E_Com.API
             });
 
             builder.Services.AddMemoryCache();
+            builder.Services.AddSignalR();
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -135,6 +137,7 @@ namespace E_Com.API
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
+            app.MapHub<OrderTrackingHub>("/hubs/orders");
             await app.RunAsync();
         }
     }
