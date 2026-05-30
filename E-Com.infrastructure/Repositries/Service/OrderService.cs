@@ -1,5 +1,6 @@
 using AutoMapper;
 using E_Com.Core.DTO;
+using E_Com.Core.Entites;
 using E_Com.Core.Entites.Order;
 using E_Com.Core.interfaces;
 using E_Com.Core.Services;
