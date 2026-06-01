@@ -8,21 +8,22 @@ namespace E_Com.Core.Sharing
 {
     public class ProductParams
     {
-        //string sort , int? CategoryId , int pageSize , int pageNumber
-        public string? Sort { get; set; }
-        public int? CategoryId { get; set; }
+        public string? Sort       { get; set; }
+        public int?    CategoryId { get; set; }
+        public string? Search     { get; set; }
 
-        public string? Search { get; set; }
-        public int MaxPageSize { get; set; } = 6; // Default page size
+        // Price filter
+        public decimal? MinPrice  { get; set; }
+        public decimal? MaxPrice  { get; set; }
 
-        private int _pageSize = 3; // Default page number
+        public int MaxPageSize { get; set; } = 50;
 
+        private int _pageSize = 9;
         public int pageSize
         {
-            get  { return _pageSize; }
-            set { _pageSize = value > MaxPageSize ? MaxPageSize : value; }
+            get => _pageSize;
+            set => _pageSize = value > MaxPageSize ? MaxPageSize : value;
         }
-        public int PageNumber { get; set; } = 1; // Default page number
-
+        public int PageNumber { get; set; } = 1;
     }
 }

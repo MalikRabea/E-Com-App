@@ -269,16 +269,93 @@ namespace E_Com.API.Controllers
         public async Task<IActionResult> GetDailyOrders()
         {
             var cutoff = DateTime.UtcNow.AddDays(-7).Date;
-            var orders = await _context.Orders
-                .Where(o => o.OrderDate >= cutoff)
-                .ToListAsync();
-
-            var data = orders
+            var orders = await _context.Orders.Where(o => o.OrderDate >= cutoff).ToListAsync();
+            var data   = orders
                 .GroupBy(o => o.OrderDate.Date)
                 .Select(g => new { Date = g.Key.ToString("yyyy-MM-dd"), Count = g.Count(), Revenue = g.Sum(o => o.SubTotal) })
-                .OrderBy(x => x.Date)
-                .ToList();
+                .OrderBy(x => x.Date).ToList();
             return Ok(data);
         }
+
+        // ── Return Requests ──
+
+        [HttpGet("returns")]
+        public async Task<IActionResult> GetReturnRequests([FromQuery] string? status = null)
+        {
+            var query = _context.ReturnRequests.AsQueryable();
+            if (!string.IsNullOrEmpty(status)) query = query.Where(r => r.Status == status);
+
+            var data = await query
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new { r.Id, r.OrderId, r.UserEmail, r.Reason, r.Description, r.Status, r.AdminNote, r.CreatedAt, r.UpdatedAt })
+                .ToListAsync();
+            return Ok(data);
+        }
+
+        [HttpPatch("returns/{id}")]
+        public async Task<IActionResult> UpdateReturnStatus(int id, [FromBody] UpdateReturnDTO dto)
+        {
+            var request = await _context.ReturnRequests.FindAsync(id);
+            if (request == null) return NotFound();
+
+            request.Status    = dto.Status;
+            request.AdminNote = dto.AdminNote ?? "";
+            request.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            // Email user about decision (non-blocking)
+            _ = SendReturnDecisionEmail(request);
+
+            return Ok();
+        }
+
+        private async Task SendReturnDecisionEmail(ReturnRequest r)
+        {
+            try
+            {
+                var (icon, msg) = r.Status == "Approved"
+                    ? ("✅", "Your return request has been approved. A refund will be processed within 3-5 business days.")
+                    : ("❌", $"Your return request has been rejected. {r.AdminNote}");
+
+                var html = $@"<!DOCTYPE html><html><body style='font-family:Inter,sans-serif;max-width:600px;margin:0 auto;color:#1e293b'>
+  <div style='background:#2563eb;padding:24px;border-radius:12px 12px 0 0;text-align:center'>
+    <h1 style='color:#fff;margin:0'>{icon} Return Request Update</h1>
+  </div>
+  <div style='background:#f8fafc;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0'>
+    <p>Hi <strong>{r.UserEmail}</strong>,</p>
+    <p>{msg}</p>
+    <p>Order #{r.OrderId} · Reason: {r.Reason}</p>
+  </div></body></html>";
+
+                await _emailService.SendEmail(new E_Com.Core.DTO.EmailDTO
+                {
+                    To      = r.UserEmail,
+                    Subject = $"Return Request #{r.Id} — {r.Status} | E-Shop",
+                    Content = html
+                });
+            }
+            catch { }
+        }
+
+        // ── Abandoned Carts ──
+
+        [HttpGet("abandoned-carts")]
+        public async Task<IActionResult> GetAbandonedCarts()
+        {
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+            var carts = await _context.AbandonedCartTrackers
+                .Where(t => !string.IsNullOrEmpty(t.UserEmail) && t.CreatedAt <= cutoff)
+                .OrderByDescending(t => t.CreatedAt)
+                .Select(t => new { t.Id, t.UserEmail, t.BasketId, t.CreatedAt, t.EmailSent, t.EmailSentAt })
+                .ToListAsync();
+            return Ok(carts);
+        }
+    }
+
+    public class UpdateReturnDTO
+    {
+        public string  Status    { get; set; }
+        public string? AdminNote { get; set; }
     }
 }

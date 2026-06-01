@@ -56,6 +56,12 @@ namespace E_Com.infrastructure.Repositries
             if (productParams.CategoryId.HasValue)
                 query = query.Where(m => m.CategoryId == productParams.CategoryId);
 
+            // price range filter
+            if (productParams.MinPrice.HasValue)
+                query = query.Where(p => p.NewPrice >= productParams.MinPrice.Value);
+            if (productParams.MaxPrice.HasValue)
+                query = query.Where(p => p.NewPrice <= productParams.MaxPrice.Value);
+
             if (!string.IsNullOrEmpty(productParams.Sort))
             {
                 query = productParams.Sort switch

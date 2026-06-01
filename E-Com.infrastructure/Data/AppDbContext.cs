@@ -31,6 +31,15 @@ namespace E_Com.infrastructure.Data
         public virtual DbSet<ProductVariant>    ProductVariants     { get; set; }
         public virtual DbSet<VariantOption>     VariantOptions      { get; set; }
 
+        // Returns
+        public virtual DbSet<ReturnRequest>       ReturnRequests       { get; set; }
+
+        // Abandoned Cart
+        public virtual DbSet<AbandonedCartTracker> AbandonedCartTrackers { get; set; }
+
+        // Push Notifications
+        public virtual DbSet<PushSubscription>  PushSubscriptions   { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

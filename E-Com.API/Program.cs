@@ -45,7 +45,21 @@ namespace E_Com.API
 
             builder.Services.AddMemoryCache();
             builder.Services.AddSignalR();
+            builder.Services.AddHttpClient();
             builder.Services.AddControllers();
+
+            // Google OAuth (set Google__ClientId and Google__ClientSecret in env vars)
+            var googleClientId     = Environment.GetEnvironmentVariable("Google__ClientId");
+            var googleClientSecret = Environment.GetEnvironmentVariable("Google__ClientSecret");
+            if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+            {
+                builder.Services.AddAuthentication()
+                    .AddGoogle(options =>
+                    {
+                        options.ClientId     = googleClientId;
+                        options.ClientSecret = googleClientSecret;
+                    });
+            }
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.infrastructureConfiguration(builder.Configuration);
