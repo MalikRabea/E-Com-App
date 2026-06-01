@@ -72,7 +72,8 @@ namespace E_Com.API.Controllers
                 await _userManager.AddToRoleAsync(user, "User");
             }
 
-            var token = _tokenService.GenerateToken(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            var token = _tokenService.GetAndCreateToken(user, roles);
 
             // Store token in cookie same as regular login
             var cookieOptions = new CookieOptions

@@ -48,18 +48,8 @@ namespace E_Com.API
             builder.Services.AddHttpClient();
             builder.Services.AddControllers();
 
-            // Google OAuth (set Google__ClientId and Google__ClientSecret in env vars)
-            var googleClientId     = Environment.GetEnvironmentVariable("Google__ClientId");
-            var googleClientSecret = Environment.GetEnvironmentVariable("Google__ClientSecret");
-            if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
-            {
-                builder.Services.AddAuthentication()
-                    .AddGoogle(options =>
-                    {
-                        options.ClientId     = googleClientId;
-                        options.ClientSecret = googleClientSecret;
-                    });
-            }
+            // Google OAuth is handled via token verification in SocialAuthController
+            // No AddGoogle() needed — frontend sends access_token, backend verifies with Google API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.infrastructureConfiguration(builder.Configuration);
