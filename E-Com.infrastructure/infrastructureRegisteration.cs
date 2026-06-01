@@ -30,6 +30,7 @@ public static class infrastructureRegisteration
         services.AddScoped<IFavoriteRepository, FavoriteRepository>();
         services.AddScoped<ILoyaltyService, LoyaltyService>();
         services.AddHostedService<AbandonedCartService>();
+        services.AddHostedService<SubscriptionService>();
 
         var redisConfig = Environment.GetEnvironmentVariable("ConnectionStrings__redis");
 

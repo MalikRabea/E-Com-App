@@ -40,6 +40,11 @@ namespace E_Com.infrastructure.Data
         // Push Notifications
         public virtual DbSet<PushSubscription>  PushSubscriptions   { get; set; }
 
+        // Commercial features
+        public virtual DbSet<GiftCard>           GiftCards           { get; set; }
+        public virtual DbSet<Subscription>       Subscriptions       { get; set; }
+        public virtual DbSet<OrderTrackingPoint> OrderTrackingPoints { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
