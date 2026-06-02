@@ -40,6 +40,11 @@ namespace E_Com.infrastructure.Repositries.Service
 
         public async Task<Orders> CreateOrdersAsync(OrderDTO orderDTO, string BuyerEmail)
         {
+            // Mandatory email verification before first/any order
+            var buyer = await _userManager.FindByEmailAsync(BuyerEmail);
+            if (buyer != null && !buyer.EmailConfirmed)
+                throw new Exception("EMAIL_NOT_VERIFIED");
+
             var basket = await _unitOfWork.CustomerBasket.GetBasketAsync(orderDTO.basketId);
 
             var orderItems = new List<OrderItem>();
@@ -49,7 +54,19 @@ namespace E_Com.infrastructure.Repositries.Service
                 if (product == null) throw new Exception($"Product {item.Id} not found");
 
                 product.SoldCount += item.Quantity;
+                // decrement stock + log inventory movement
+                product.StockQuantity = Math.Max(0, product.StockQuantity - item.Quantity);
                 await _unitOfWork.ProductRepositry.UpdateAsync(product);
+
+                _context.InventoryMovements.Add(new E_Com.Core.Entites.Inventory.InventoryMovement
+                {
+                    ProductId   = product.Id,
+                    ProductName = product.Name,
+                    Change      = -item.Quantity,
+                    NewStock    = product.StockQuantity,
+                    Reason      = "Order purchase",
+                    PerformedBy = BuyerEmail
+                });
 
                 orderItems.Add(new OrderItem(product.Id, item.Image, product.Name, item.Price, item.Quantity));
             }

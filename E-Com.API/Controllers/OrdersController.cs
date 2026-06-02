@@ -23,9 +23,15 @@ namespace E_Com.API.Controllers
         {
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
 
-            Orders order = await _orderService.CreateOrdersAsync(orderDTO, email);
-
-            return Ok(order);
+            try
+            {
+                Orders order = await _orderService.CreateOrdersAsync(orderDTO, email);
+                return Ok(order);
+            }
+            catch (Exception ex) when (ex.Message == "EMAIL_NOT_VERIFIED")
+            {
+                return BadRequest(new { code = "EMAIL_NOT_VERIFIED", message = "Please verify your email before placing an order." });
+            }
         }
         [Authorize]
         [HttpGet("get-orders-for-user")]

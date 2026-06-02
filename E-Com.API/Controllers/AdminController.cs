@@ -351,11 +351,161 @@ namespace E_Com.API.Controllers
                 .ToListAsync();
             return Ok(carts);
         }
+
+        // ── Customer Segmentation ──
+
+        [HttpGet("segments")]
+        public async Task<IActionResult> GetSegments()
+        {
+            var paidOrders = await _context.Orders
+                .Where(o => o.status == Status.PaymentReceived)
+                .Select(o => new { o.BuyerEmail, o.SubTotal, o.OrderDate })
+                .ToListAsync();
+
+            var byUser = paidOrders.GroupBy(o => o.BuyerEmail)
+                .Select(g => new { Email = g.Key, Spent = g.Sum(x => x.SubTotal), Last = g.Max(x => x.OrderDate), Count = g.Count() })
+                .ToList();
+
+            var now = DateTime.UtcNow;
+            var vip      = byUser.Count(u => u.Spent >= 500);
+            var inactive = byUser.Count(u => (now - u.Last).TotalDays > 60);
+            var totalUsers = await _userManager.Users.CountAsync();
+            var buyers   = byUser.Select(u => u.Email).ToHashSet();
+            var newUsers = totalUsers - buyers.Count; // never purchased
+
+            return Ok(new
+            {
+                All      = totalUsers,
+                VIP      = vip,
+                Inactive = inactive,
+                New      = newUsers
+            });
+        }
+
+        [HttpPost("campaigns/send")]
+        public async Task<IActionResult> SendCampaign([FromBody] SendCampaignDTO dto)
+        {
+            var recipients = await ResolveSegmentEmails(dto.Segment);
+            var sender = await _userManager.GetUserAsync(User);
+
+            // record campaign
+            _context.EmailCampaigns.Add(new E_Com.Core.Entites.Marketing.EmailCampaign
+            {
+                Subject = dto.Subject, Body = dto.Body, Segment = dto.Segment,
+                Recipients = recipients.Count, SentByUserId = sender?.Id ?? ""
+            });
+            await _context.SaveChangesAsync();
+
+            // fire-and-forget emails
+            _ = Task.Run(async () =>
+            {
+                foreach (var email in recipients)
+                {
+                    try
+                    {
+                        var html = $@"<!DOCTYPE html><html><body style='font-family:Inter,sans-serif;max-width:600px;margin:0 auto;color:#1e293b'>
+  <div style='background:#2563eb;padding:24px;border-radius:12px 12px 0 0;text-align:center'>
+    <h1 style='color:#fff;margin:0'>E-Shop</h1></div>
+  <div style='background:#f8fafc;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0'>{dto.Body}</div>
+</body></html>";
+                        await _emailService.SendEmail(new E_Com.Core.DTO.EmailDTO { To = email, Subject = dto.Subject, Content = html });
+                    }
+                    catch { }
+                }
+            });
+
+            return Ok(new { sent = recipients.Count });
+        }
+
+        [HttpGet("campaigns")]
+        public async Task<IActionResult> GetCampaigns()
+            => Ok(await _context.EmailCampaigns.OrderByDescending(c => c.SentAt)
+                .Select(c => new { c.Id, c.Subject, c.Segment, c.Recipients, c.SentAt }).ToListAsync());
+
+        private async Task<List<string>> ResolveSegmentEmails(string segment)
+        {
+            var paidOrders = await _context.Orders
+                .Where(o => o.status == Status.PaymentReceived)
+                .Select(o => new { o.BuyerEmail, o.SubTotal, o.OrderDate })
+                .ToListAsync();
+
+            var byUser = paidOrders.GroupBy(o => o.BuyerEmail)
+                .Select(g => new { Email = g.Key, Spent = g.Sum(x => x.SubTotal), Last = g.Max(x => x.OrderDate) })
+                .ToList();
+
+            var now = DateTime.UtcNow;
+            switch (segment)
+            {
+                case "VIP":      return byUser.Where(u => u.Spent >= 500).Select(u => u.Email).ToList();
+                case "Inactive": return byUser.Where(u => (now - u.Last).TotalDays > 60).Select(u => u.Email).ToList();
+                case "New":
+                    var buyers = byUser.Select(u => u.Email).ToHashSet();
+                    return (await _userManager.Users.Where(u => u.Email != null).Select(u => u.Email!).ToListAsync())
+                        .Where(e => !buyers.Contains(e)).ToList();
+                default:
+                    return await _userManager.Users.Where(u => u.Email != null).Select(u => u.Email!).ToListAsync();
+            }
+        }
+
+        // ── Inventory Movements ──
+
+        [HttpGet("inventory/movements")]
+        public async Task<IActionResult> GetMovements([FromQuery] int? productId = null)
+        {
+            var query = _context.InventoryMovements.AsQueryable();
+            if (productId.HasValue) query = query.Where(m => m.ProductId == productId);
+            var data = await query.OrderByDescending(m => m.CreatedAt).Take(100)
+                .Select(m => new { m.Id, m.ProductId, m.ProductName, m.Change, m.NewStock, m.Reason, m.PerformedBy, m.CreatedAt })
+                .ToListAsync();
+            return Ok(data);
+        }
+
+        [HttpGet("inventory/reorder-alerts")]
+        public async Task<IActionResult> ReorderAlerts([FromQuery] int threshold = 5)
+        {
+            var low = await _context.Products
+                .Where(p => p.StockQuantity <= threshold)
+                .OrderBy(p => p.StockQuantity)
+                .Select(p => new { p.Id, p.Name, p.StockQuantity, p.SoldCount })
+                .ToListAsync();
+            return Ok(low);
+        }
+
+        [HttpPost("inventory/restock")]
+        public async Task<IActionResult> Restock([FromBody] RestockDTO dto)
+        {
+            var product = await _context.Products.FindAsync(dto.ProductId);
+            if (product == null) return NotFound();
+
+            product.StockQuantity += dto.Amount;
+            _context.InventoryMovements.Add(new E_Com.Core.Entites.Inventory.InventoryMovement
+            {
+                ProductId = product.Id, ProductName = product.Name,
+                Change = dto.Amount, NewStock = product.StockQuantity,
+                Reason = dto.Reason ?? "Restock", PerformedBy = User.Identity?.Name
+            });
+            await _context.SaveChangesAsync();
+            return Ok(new { product.StockQuantity });
+        }
     }
 
     public class UpdateReturnDTO
     {
         public string  Status    { get; set; }
         public string? AdminNote { get; set; }
+    }
+
+    public class SendCampaignDTO
+    {
+        public string Subject { get; set; }
+        public string Body    { get; set; }
+        public string Segment { get; set; }
+    }
+
+    public class RestockDTO
+    {
+        public int     ProductId { get; set; }
+        public int     Amount    { get; set; }
+        public string? Reason    { get; set; }
     }
 }

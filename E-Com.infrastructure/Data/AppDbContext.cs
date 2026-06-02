@@ -1,8 +1,12 @@
 using System.Reflection;
 using E_Com.Core.Entites;
+using E_Com.Core.Entites.Inventory;
 using E_Com.Core.Entites.Loyalty;
+using E_Com.Core.Entites.Marketing;
 using E_Com.Core.Entites.Order;
 using E_Com.Core.Entites.Products;
+using E_Com.Core.Entites.Security;
+using E_Com.Core.Entites.Support;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -45,6 +49,22 @@ namespace E_Com.infrastructure.Data
         public virtual DbSet<Subscription>       Subscriptions       { get; set; }
         public virtual DbSet<OrderTrackingPoint> OrderTrackingPoints { get; set; }
 
+        // Security
+        public virtual DbSet<OtpCode>            OtpCodes            { get; set; }
+
+        // Support
+        public virtual DbSet<SupportTicket>      SupportTickets      { get; set; }
+        public virtual DbSet<TicketMessage>      TicketMessages      { get; set; }
+        public virtual DbSet<FaqItem>            FaqItems            { get; set; }
+
+        // Marketing
+        public virtual DbSet<ReferralProfile>    ReferralProfiles    { get; set; }
+        public virtual DbSet<Referral>           Referrals           { get; set; }
+        public virtual DbSet<EmailCampaign>      EmailCampaigns      { get; set; }
+
+        // Inventory
+        public virtual DbSet<InventoryMovement>  InventoryMovements  { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -64,6 +84,11 @@ namespace E_Com.infrastructure.Data
                 .HasMany(v => v.Options)
                 .WithOne(o => o.Variant)
                 .HasForeignKey(o => o.VariantId);
+
+            modelBuilder.Entity<SupportTicket>()
+                .HasMany(t => t.Messages)
+                .WithOne(m => m.Ticket)
+                .HasForeignKey(m => m.TicketId);
         }
     }
 }
