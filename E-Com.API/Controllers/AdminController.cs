@@ -21,17 +21,20 @@ namespace E_Com.API.Controllers
         private readonly UserManager<AppUser> _userManager;
         private readonly IHubContext<OrderTrackingHub> _hub;
         private readonly IEmailService _emailService;
+        private readonly INotificationService _notifications;
 
         public AdminController(
             AppDbContext context,
             UserManager<AppUser> userManager,
             IHubContext<OrderTrackingHub> hub,
-            IEmailService emailService)
+            IEmailService emailService,
+            INotificationService notifications)
         {
             _context = context;
             _userManager = userManager;
             _hub = hub;
             _emailService = emailService;
+            _notifications = notifications;
         }
 
         [HttpGet("stats")]
@@ -104,6 +107,17 @@ namespace E_Com.API.Controllers
             // SignalR — notify the user watching their order
             await _hub.Clients.Group($"order-{id}")
                 .SendAsync("OrderStatusUpdated", new { orderId = id, status = dto.Status });
+
+            // In-app notification to the buyer
+            var (nIcon, nMsg) = dto.Status switch
+            {
+                "Shipped"         => ("local_shipping", "Your order is on its way! 🚚"),
+                "Delivered"       => ("done_all",       "Your order has been delivered. Enjoy! ✅"),
+                "PaymentReceived" => ("payments",       "Payment confirmed for your order."),
+                _                 => ("info",           $"Your order status is now: {dto.Status}")
+            };
+            await _notifications.NotifyByEmailAsync(order.BuyerEmail, "order", nIcon,
+                $"Order #{id} — {dto.Status}", nMsg, $"/orders?id={id}");
 
             // Email notification (non-blocking)
             _ = SendStatusEmail(order.BuyerEmail, id, dto.Status);
@@ -303,6 +317,16 @@ namespace E_Com.API.Controllers
             request.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            // In-app notification to the user
+            var approved = dto.Status == "Approved";
+            await _notifications.NotifyByEmailAsync(request.UserEmail,
+                approved ? "success" : "warning",
+                approved ? "check_circle" : "cancel",
+                $"Return #{request.Id} {dto.Status}",
+                approved ? "Your return was approved. Refund is being processed."
+                         : $"Your return was rejected. {request.AdminNote}",
+                $"/orders?id={request.OrderId}");
 
             // Email user about decision (non-blocking)
             _ = SendReturnDecisionEmail(request);

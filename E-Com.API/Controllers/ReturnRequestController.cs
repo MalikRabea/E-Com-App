@@ -14,11 +14,14 @@ namespace E_Com.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly UserManager<AppUser> _userManager;
+        private readonly E_Com.Core.Services.INotificationService _notifications;
 
-        public ReturnRequestController(AppDbContext context, UserManager<AppUser> userManager)
+        public ReturnRequestController(AppDbContext context, UserManager<AppUser> userManager,
+            E_Com.Core.Services.INotificationService notifications)
         {
             _context = context;
             _userManager = userManager;
+            _notifications = notifications;
         }
 
         [HttpPost]
@@ -40,6 +43,12 @@ namespace E_Com.API.Controllers
 
             _context.ReturnRequests.Add(request);
             await _context.SaveChangesAsync();
+
+            // Notify admins of the new return request
+            await _notifications.NotifyAdminsAsync("warning", "assignment_return",
+                "New Return Request",
+                $"Order #{dto.OrderId} · {dto.Reason} — from {user.Email}",
+                "/admin/returns");
 
             return Ok(new { request.Id, request.Status, Message = "Return request submitted successfully." });
         }

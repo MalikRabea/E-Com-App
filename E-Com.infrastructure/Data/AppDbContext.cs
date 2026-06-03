@@ -3,6 +3,7 @@ using E_Com.Core.Entites;
 using E_Com.Core.Entites.Inventory;
 using E_Com.Core.Entites.Loyalty;
 using E_Com.Core.Entites.Marketing;
+using E_Com.Core.Entites.Notifications;
 using E_Com.Core.Entites.Order;
 using E_Com.Core.Entites.Products;
 using E_Com.Core.Entites.Security;
@@ -64,6 +65,9 @@ namespace E_Com.infrastructure.Data
 
         // Inventory
         public virtual DbSet<InventoryMovement>  InventoryMovements  { get; set; }
+
+        // Notifications
+        public virtual DbSet<Notification>       Notifications       { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

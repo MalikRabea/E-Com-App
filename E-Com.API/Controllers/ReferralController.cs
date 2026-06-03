@@ -16,15 +16,18 @@ namespace E_Com.API.Controllers
         private readonly AppDbContext _context;
         private readonly UserManager<AppUser> _userManager;
         private readonly ILoyaltyService _loyalty;
+        private readonly INotificationService _notifications;
 
         private const int REFERRER_REWARD = 500; // points
         private const int REFERRED_REWARD = 250;
 
-        public ReferralController(AppDbContext context, UserManager<AppUser> userManager, ILoyaltyService loyalty)
+        public ReferralController(AppDbContext context, UserManager<AppUser> userManager,
+            ILoyaltyService loyalty, INotificationService notifications)
         {
             _context = context;
             _userManager = userManager;
             _loyalty = loyalty;
+            _notifications = notifications;
         }
 
         // Get (or create) my referral profile + stats
@@ -97,9 +100,17 @@ namespace E_Com.API.Controllers
                 profile.TotalReferred += 1;
                 profile.PointsEarned  += REFERRER_REWARD;
                 await _loyalty.AwardPointsAsync(referral.ReferrerUserId, REFERRER_REWARD, $"Referral reward — {user.Email}");
+                await _notifications.NotifyUserAsync(referral.ReferrerUserId, "success", "group_add",
+                    "Referral Reward Earned! 🎉",
+                    $"{user.Email} joined using your code. You earned {REFERRER_REWARD} points!",
+                    "/Account/referral");
             }
 
             await _loyalty.AwardPointsAsync(user.Id, REFERRED_REWARD, "Welcome referral bonus");
+            await _notifications.NotifyUserAsync(user.Id, "success", "redeem",
+                "Welcome Bonus! 🎁",
+                $"You earned {REFERRED_REWARD} points for joining with a referral code.",
+                "/Account/loyalty");
             await _context.SaveChangesAsync();
 
             return Ok(new { rewarded = true, referredReward = REFERRED_REWARD });

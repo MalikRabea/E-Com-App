@@ -19,6 +19,7 @@ namespace E_Com.infrastructure.Repositries.Service
         private readonly IEmailService _emailService;
         private readonly ILoyaltyService _loyaltyService;
         private readonly UserManager<AppUser> _userManager;
+        private readonly INotificationService _notifications;
 
         public OrderService(
             IUnitOfWork unitOfWork,
@@ -27,7 +28,8 @@ namespace E_Com.infrastructure.Repositries.Service
             IPaymentService paymentService,
             IEmailService emailService,
             ILoyaltyService loyaltyService,
-            UserManager<AppUser> userManager)
+            UserManager<AppUser> userManager,
+            INotificationService notifications)
         {
             _unitOfWork = unitOfWork;
             _context = context;
@@ -36,6 +38,7 @@ namespace E_Com.infrastructure.Repositries.Service
             _emailService = emailService;
             _loyaltyService = loyaltyService;
             _userManager = userManager;
+            _notifications = notifications;
         }
 
         public async Task<Orders> CreateOrdersAsync(OrderDTO orderDTO, string BuyerEmail)
@@ -102,6 +105,21 @@ namespace E_Com.infrastructure.Repositries.Service
 
                 // Send order confirmation email (non-blocking)
                 _ = SendOrderConfirmationEmail(BuyerEmail, order, deliverMethod?.Price ?? 0);
+
+                // In-app notifications: confirm to buyer + alert admins
+                try
+                {
+                    await _notifications.NotifyByEmailAsync(BuyerEmail, "order", "check_circle",
+                        $"Order #{order.Id} Confirmed",
+                        "Your order has been placed successfully. We'll keep you updated!",
+                        $"/orders?id={order.Id}");
+
+                    await _notifications.NotifyAdminsAsync("order", "receipt_long",
+                        "New Order Received",
+                        $"Order #{order.Id} from {BuyerEmail} — ${subTotal:F2}",
+                        "/admin/orders");
+                }
+                catch { /* notifications must not block order */ }
 
                 // Award loyalty points (1 point per $1)
                 try

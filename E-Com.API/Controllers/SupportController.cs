@@ -14,11 +14,14 @@ namespace E_Com.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly UserManager<AppUser> _userManager;
+        private readonly E_Com.Core.Services.INotificationService _notifications;
 
-        public SupportController(AppDbContext context, UserManager<AppUser> userManager)
+        public SupportController(AppDbContext context, UserManager<AppUser> userManager,
+            E_Com.Core.Services.INotificationService notifications)
         {
             _context = context;
             _userManager = userManager;
+            _notifications = notifications;
         }
 
         // ── User: create ticket ──
@@ -44,6 +47,13 @@ namespace E_Com.API.Controllers
             };
             _context.SupportTickets.Add(ticket);
             await _context.SaveChangesAsync();
+
+            // Notify admins of the new ticket
+            await _notifications.NotifyAdminsAsync("support", "support_agent",
+                "New Support Ticket",
+                $"#{ticket.Id} · {dto.Subject} — from {user.Email}",
+                "/admin/support");
+
             return Ok(new { ticket.Id });
         }
 
@@ -107,6 +117,17 @@ namespace E_Com.API.Controllers
             ticket.UpdatedAt = DateTime.UtcNow;
             if (isAdmin && ticket.Status == "Open") ticket.Status = "Pending";
             await _context.SaveChangesAsync();
+
+            // Notify the other party
+            if (isAdmin)
+                await _notifications.NotifyUserAsync(ticket.UserId, "support", "support_agent",
+                    "Support replied to your ticket",
+                    $"#{ticket.Id} · {ticket.Subject}", "/help");
+            else
+                await _notifications.NotifyAdminsAsync("support", "support_agent",
+                    "Customer replied to a ticket",
+                    $"#{ticket.Id} · {ticket.Subject}", "/admin/support");
+
             return Ok();
         }
 
