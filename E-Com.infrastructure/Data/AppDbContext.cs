@@ -69,6 +69,12 @@ namespace E_Com.infrastructure.Data
         // Notifications
         public virtual DbSet<Notification>       Notifications       { get; set; }
 
+        // Commercial: bundles, tiered pricing, stock reservation
+        public virtual DbSet<Bundle>             Bundles             { get; set; }
+        public virtual DbSet<BundleItem>         BundleItems         { get; set; }
+        public virtual DbSet<PriceTier>          PriceTiers          { get; set; }
+        public virtual DbSet<StockReservation>   StockReservations   { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -93,6 +99,11 @@ namespace E_Com.infrastructure.Data
                 .HasMany(t => t.Messages)
                 .WithOne(m => m.Ticket)
                 .HasForeignKey(m => m.TicketId);
+
+            modelBuilder.Entity<Bundle>()
+                .HasMany(b => b.Items)
+                .WithOne(i => i.Bundle)
+                .HasForeignKey(i => i.BundleId);
         }
     }
 }

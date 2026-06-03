@@ -291,6 +291,85 @@ namespace E_Com.API.Controllers
             return Ok(data);
         }
 
+        // ── Customer Lifetime Value ──
+
+        [HttpGet("customer-ltv")]
+        public async Task<IActionResult> CustomerLtv()
+        {
+            var paid = await _context.Orders
+                .Where(o => o.status == Status.PaymentReceived)
+                .Select(o => new { o.BuyerEmail, o.SubTotal, o.OrderDate })
+                .ToListAsync();
+
+            var byUser = paid.GroupBy(o => o.BuyerEmail)
+                .Select(g => new
+                {
+                    Email      = g.Key,
+                    TotalSpent = g.Sum(x => x.SubTotal),
+                    Orders     = g.Count(),
+                    AvgOrder   = g.Average(x => x.SubTotal),
+                    FirstOrder = g.Min(x => x.OrderDate),
+                    LastOrder  = g.Max(x => x.OrderDate)
+                })
+                .ToList();
+
+            var totalCustomers = byUser.Count;
+            var avgLtv  = totalCustomers > 0 ? byUser.Average(u => u.TotalSpent) : 0;
+            var avgOrders = totalCustomers > 0 ? byUser.Average(u => u.Orders) : 0;
+            var repeatRate = totalCustomers > 0
+                ? Math.Round(byUser.Count(u => u.Orders > 1) * 100.0 / totalCustomers, 1) : 0;
+
+            var top = byUser.OrderByDescending(u => u.TotalSpent).Take(10)
+                .Select(u => new { u.Email, u.TotalSpent, u.Orders, AvgOrder = Math.Round(u.AvgOrder, 2), u.LastOrder })
+                .ToList();
+
+            return Ok(new
+            {
+                AvgLtv       = Math.Round(avgLtv, 2),
+                AvgOrders    = Math.Round(avgOrders, 1),
+                RepeatRate   = repeatRate,
+                TotalCustomers = totalCustomers,
+                TopCustomers = top
+            });
+        }
+
+        // ── Cohort Analysis (retention by first-purchase month) ──
+
+        [HttpGet("cohorts")]
+        public async Task<IActionResult> Cohorts()
+        {
+            var paid = await _context.Orders
+                .Where(o => o.status == Status.PaymentReceived)
+                .Select(o => new { o.BuyerEmail, o.OrderDate })
+                .ToListAsync();
+
+            // each customer's first-purchase month = their cohort
+            var firstByUser = paid.GroupBy(o => o.BuyerEmail)
+                .ToDictionary(g => g.Key, g => new DateTime(g.Min(x => x.OrderDate).Year, g.Min(x => x.OrderDate).Month, 1));
+
+            // for each cohort, how many were active in month offset 0..5
+            var cohorts = firstByUser.Values.Distinct().OrderBy(d => d).TakeLast(6).ToList();
+
+            var result = cohorts.Select(cohort =>
+            {
+                var members = firstByUser.Where(kv => kv.Value == cohort).Select(kv => kv.Key).ToHashSet();
+                var size = members.Count;
+                var retention = new List<int>();
+                for (int offset = 0; offset < 6; offset++)
+                {
+                    var monthStart = cohort.AddMonths(offset);
+                    var monthEnd   = monthStart.AddMonths(1);
+                    var active = paid.Where(o => members.Contains(o.BuyerEmail)
+                                    && o.OrderDate >= monthStart && o.OrderDate < monthEnd)
+                                 .Select(o => o.BuyerEmail).Distinct().Count();
+                    retention.Add(size > 0 ? (int)Math.Round(active * 100.0 / size) : 0);
+                }
+                return new { Cohort = cohort.ToString("MMM yyyy"), Size = size, Retention = retention };
+            }).ToList();
+
+            return Ok(result);
+        }
+
         // ── Return Requests ──
 
         [HttpGet("returns")]

@@ -32,6 +32,7 @@ public static class infrastructureRegisteration
         services.AddScoped<INotificationService, NotificationService>();
         services.AddHostedService<AbandonedCartService>();
         services.AddHostedService<SubscriptionService>();
+        services.AddHostedService<ReservationCleanupService>();
 
         var redisConfig = Environment.GetEnvironmentVariable("ConnectionStrings__redis");
 
